@@ -1,1 +1,3 @@
 .venv
+faafo*.py
+__pycache__
