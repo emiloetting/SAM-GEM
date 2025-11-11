@@ -1,15 +1,18 @@
+import sys
 import numpy as np  
-import os
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, 
                                QVBoxLayout, QHBoxLayout, QPushButton, 
                                QLabel, QLineEdit, QSizePolicy,
-                               QFrame)
+                               QFrame, QMenuBar)
 from PySide6.QtCore import Qt
-from plotting import ScatterWidget, DraggableWaveform
+from src.plotting import ScatterWidget, DraggableWaveform
+
 
 
 MATCH_COLOR = '#fa3737'
 BASIC_COLOR = '#7aabfa'
+
+
 
 class GUI(QMainWindow):
     """Main GUI class."""
@@ -21,10 +24,10 @@ class GUI(QMainWindow):
 
         # Define vars to hold info on selected points / matches
         # TODO: UPDATE PATHS
-        self.currently_selected = r"demo_audio\YOUR_SOUND_1"    # as current placeholder
-        self.first_match_pth = r"demo_audio\YOUR_SOUND_1"
-        self.second_match_pth = r"demo_audio\YOUR_SOUND_2"
-        self.third_match_pth = r"demo_audio\XOUR_SOUND_3"
+        self.currently_selected = r"demo_audio\ah_chd120_upstate_B.wav"    # as current placeholder
+        self.first_match_pth = r"demo_audio\ah_chd120_upstate_B.wav"
+        self.second_match_pth = r"demo_audio\BOS_BRT_Kick_Rumble_One_Shot_Gestalt.wav"
+        self.third_match_pth = r"demo_audio\dhg_hat_usg.wav"
 
         # Fill main window with actual widget
         central = QWidget()
@@ -35,6 +38,41 @@ class GUI(QMainWindow):
         top = QHBoxLayout()              # top part of vertical layout is arranges widgets horizontally
         bottom = QVBoxLayout()           # so does bottom part
 
+        # ========================================== TOP MENU ========================================
+        menuBar = QMenuBar(self)
+        self.setMenuBar(menuBar)
+        self.menu = menuBar.addMenu("Menu")
+        self.menu.setStyleSheet("""
+            QMenu {
+                background-color: rgba(43, 43, 43, 180);  
+                border-radius: 8px;
+                border: none;
+                padding: 6px 0px;
+            }
+            QMenu::item {
+                padding: 6px 16px;
+                color: white;
+                background-color: transparent;
+            }
+            QMenu::item:selected {
+                background-color: rgba(255, 255, 255, 40);
+            }
+        """)
+        self.menu.setAttribute(Qt.WA_TranslucentBackground, True)
+        self.menu.setWindowFlags(
+            self.menu.windowFlags()
+            | Qt.FramelessWindowHint
+            | Qt.NoDropShadowWindowHint
+        )
+
+        self.menu.addAction("Initialize Backend")
+        self.menu.addAction("Set Data Directory")
+        self.menu.addAction("Rescan Data Directory & Update DataBase")
+        self.menu.addAction("Recluster Data")
+        self.menu.addAction("Exit")
+
+        # Imlement menu actions
+        self.menu.actions()[4].triggered.connect(lambda: sys.exit())    # close app
 
         # ============================================= TOP ==========================================
         # ===LEFT COL=================================================================================
@@ -107,14 +145,18 @@ class GUI(QMainWindow):
         find_sound_btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         find_sound_btn.setStyleSheet("""
             QPushButton {
-                background-color: #7aabfa;
+                background-color: #4786eb;
                 color: white;
                 border-radius: 8px;
                 padding: 8px 24px;
                 font-size: 16px;
             }
+            QPushButton:pressed {
+                background-color: #3a60c9; 
+            }
         """)
 
+        "#3a60c9"
         # User input 
         input_row = QHBoxLayout()
         input_row.addStretch(1)
