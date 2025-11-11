@@ -1,7 +1,11 @@
+import os
 import numpy as np
+import soundfile as sf
 import pyqtgraph as pg
-from PySide6.QtWidgets import QWidget, QVBoxLayout
-from PySide6.QtGui import QColor
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QApplication
+from PySide6.QtGui import QColor, QDrag, QMouseEvent
+from PySide6.QtCore import (QPoint, Qt, QUrl, 
+                            QMimeData)
 
 
 
@@ -127,3 +131,92 @@ class ScatterWidget(QWidget):
         for p in points:
             print(f"Clicked on point at: {p.pos()}")
         #TODO: Fill with useful stuff
+
+
+class DraggableWaveform(QWidget):
+    """Widget mit Waveform-Anzeige + Drag&Drop der zugehörigen Audiodatei."""
+    def __init__(self, audio_pth: str, wav_color: str = '#fa3737', parent=None) -> None:
+        super().__init__(parent)
+
+        self.audio_pth = os.path.abspath(audio_pth)
+        self.wav_clr = wav_color
+        self._drag_start_pos = QPoint()
+
+        layout = QVBoxLayout(self) # create layout to hold plot widget
+        layout.setContentsMargins(0, 0, 0, 0)
+
+        # Create Widget to plot waveform
+        self.plot_widget = DraggablePlotWidget(self)
+        self.plot_widget.setBackground(None)
+        self.plot_widget.hideAxis("bottom")
+        self.plot_widget.hideAxis("left")
+        self.plot_widget.setMouseEnabled(x=False, y=False)
+
+        layout.addWidget(self.plot_widget)  # add to layout
+        self.show_wav()  # draw waveform
+
+
+    def show_wav(self) -> None:
+        """Loads and displays waveform of audio file."""
+        data, samplerate = sf.read(self.audio_pth)
+
+        if data.ndim > 1:
+            data = data.mean(axis=1)
+
+        t_steps = np.linspace(0, len(data) / samplerate, len(data)) # time steps for x-axis
+
+        pen = pg.mkPen(color=self.wav_clr, width=1.5)   # define line settings
+        self.plot_widget.plot(t_steps, data, pen=pen, clear=True)     # update plot
+
+
+    def mousePressEvent(self, event: QMouseEvent) -> None:
+        """Defines behavior on mouse press event for drag & drop."""
+        if event.button() == Qt.LeftButton:
+            self._drag_start_pos = event.position().toPoint()   # set start pos to later start drag if mouse moved enough
+        super().mousePressEvent(event)
+
+
+    def mouseMoveEvent(self, event: QMouseEvent) -> None:
+        """Defines behavior on mouse move event for drag & drop."""
+        #Check if left button is pressed
+        if not (event.buttons() & Qt.LeftButton):
+            return
+
+        # Check if mouse moved enough to start drag
+        if (event.position().toPoint() - self._drag_start_pos).manhattanLength() < QApplication.startDragDistance():
+            return
+
+        # Validate path to audio file
+        if not os.path.isfile(self.audio_pth):
+            print("Traying to drag non-existing file: \n", self.audio_pth)
+            return
+
+        drag = QDrag(self)
+        mime = QMimeData()  # store information in clipboard style
+        mime.setUrls([QUrl.fromLocalFile(self.audio_pth)])  # Define file to be dragged
+        drag.setMimeData(mime)  # add path info to drag object
+        drag.exec(Qt.CopyAction)    # start drag with copy action
+
+
+    def _update(self, new_path: str) -> None:
+        """Update audio path and redraw waveform.
+
+        Args:
+            new_path (str): New path to audio file.
+        """
+        self.audio_pth = os.path.abspath(new_path)
+        self.show_wav()
+    
+class DraggablePlotWidget(pg.PlotWidget):
+    """Subclass of PlotWidget to allow mouse events on parent DraggableWaveform."""
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.parent = parent
+
+    def mousePressEvent(self, event) -> None:
+        self.parent.mousePressEvent(event)
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event) -> None:
+        self.parent.mouseMoveEvent(event)
+        super().mouseMoveEvent(event)

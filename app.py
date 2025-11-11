@@ -1,10 +1,11 @@
+import numpy as np  
+import os
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, 
                                QVBoxLayout, QHBoxLayout, QPushButton, 
                                QLabel, QLineEdit, QSizePolicy,
                                QFrame)
 from PySide6.QtCore import Qt
-from plotting import ScatterWidget
-import numpy as np  
+from plotting import ScatterWidget, DraggableWaveform
 
 
 MATCH_COLOR = '#fa3737'
@@ -19,10 +20,11 @@ class GUI(QMainWindow):
         self.setGeometry(100, 100, 1200, 700)
 
         # Define vars to hold info on selected points / matches
-        self.currently_selected = None
-        self.first_match = None
-        self.second_match = None
-        self.third_match = None
+        # TODO: UPDATE PATHS
+        self.currently_selected = r"demo_audio\YOUR_SOUND_1"    # as current placeholder
+        self.first_match_pth = r"demo_audio\YOUR_SOUND_1"
+        self.second_match_pth = r"demo_audio\YOUR_SOUND_2"
+        self.third_match_pth = r"demo_audio\XOUR_SOUND_3"
 
         # Fill main window with actual widget
         central = QWidget()
@@ -42,15 +44,6 @@ class GUI(QMainWindow):
         left.stretch(1)
         left.setContentsMargins(10, 10, 10, 10)
 
-        first_match = QLabel("FIRST MATCH")
-        first_match.setAlignment(Qt.AlignHCenter)
-
-        second_match = QLabel("SECOND MATCH")
-        second_match.setAlignment(Qt.AlignHCenter)
-
-        third_match = QLabel("THIRD MATCH")
-        third_match.setAlignment(Qt.AlignHCenter)
-
         frame_style = """QFrame {
                             border: .5px solid #555;
                             border-radius: 4px;
@@ -59,9 +52,9 @@ class GUI(QMainWindow):
                             padding: 0px;
                         }"""
 
-        first_frame  = self.make_match_frame("FIRST MATCH", frame_style)
-        second_frame = self.make_match_frame("SECOND MATCH", frame_style)
-        third_frame  = self.make_match_frame("THIRD MATCH", frame_style)
+        first_frame  = self.make_match_frame("FIRST MATCH", frame_style, self.first_match_pth)
+        second_frame = self.make_match_frame("SECOND MATCH", frame_style, self.second_match_pth)
+        third_frame  = self.make_match_frame("THIRD MATCH", frame_style, self.third_match_pth)
 
         # Add space at start
         left.addStretch(1)
@@ -91,7 +84,7 @@ class GUI(QMainWindow):
                                       basic_color=BASIC_COLOR)
         scatter.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         right.addWidget(scatter, stretch=8)
-        selected_waveform = self.make_match_frame("CURRENTLY SELECTED", frame_style)
+        selected_waveform = self.make_match_frame("CURRENTLY SELECTED", frame_style, self.currently_selected) 
         right.addWidget(selected_waveform, stretch=1)
         right.addStretch(1)
 
@@ -102,7 +95,7 @@ class GUI(QMainWindow):
         # ============================================= BOTTOM ==========================================
         input_line = QLineEdit()
         input_line.setAlignment(Qt.AlignCenter) 
-        input_line.setPlaceholderText("")                    # Empty to fix Qt bug 
+        input_line.setPlaceholderText("")                    # empty to fix Qt bug 
         input_line.setPlaceholderText("DESCRIBE YOUR DESIRED SOUND HERE..")  # replace with prompt that is centered
         input_line.setMinimumHeight(40)
         input_line.setMaximumWidth(1000)
@@ -114,7 +107,7 @@ class GUI(QMainWindow):
         find_sound_btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         find_sound_btn.setStyleSheet("""
             QPushButton {
-                background-color: #ac2076;
+                background-color: #7aabfa;
                 color: white;
                 border-radius: 8px;
                 padding: 8px 24px;
@@ -143,7 +136,16 @@ class GUI(QMainWindow):
         root.addLayout(bottom, stretch=3)
 
 
-    def make_match_frame(self, text, frame_style):
+    def make_match_frame(self, text, frame_style, audio_pth:str) -> QWidget:
+        """Creates a frame with label and draggable waveform inside.
+
+        Args:
+            text (str): Label text.
+            frame_style (str): Style sheet for frame.
+            audio_pth (str): Path to audio file to display.
+        Returns:
+            QWidget: Container widget with label and frame.
+        """
         container = QWidget()
         container_layout = QVBoxLayout(container)
         container_layout.setSpacing(4)
@@ -160,6 +162,7 @@ class GUI(QMainWindow):
         frame_layout = QVBoxLayout(frame)
         frame_layout.setContentsMargins(8, 8, 8, 8)
         frame_layout.addStretch()
+        frame_layout.addWidget(DraggableWaveform(audio_pth))
 
         container_layout.addWidget(label)
         container_layout.addWidget(frame, 1) 
