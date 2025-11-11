@@ -59,18 +59,22 @@ class ScatterWidget(QWidget):
         self.data = data    # load into scatter
         self._order_points_in_plot()
         self.fill_scatter()
+        self._set_initial_range()
 
         
     def fill_scatter(self) -> None:
         """Update scatter plot with current data."""
-        self.plot.removeItem(getattr(self, 'scatter', pg.ScatterPlotItem()))  # remove old scatter if existing
+        if self.scatter is not None:
+            self.plot.removeItem(self.scatter)  # remove old scatter if existing
+
         self.scatter = pg.ScatterPlotItem(
             pos=self.data['pos'],
             size=self.data['size'],
             brush=self.data['color'],
-            pen=None,
+            pen=pg.mkPen('w', width=0.1),
             pxMode=False
         )
+
         self._connect_interactions()
         self.plot.addItem(self.scatter)
         
@@ -86,6 +90,7 @@ class ScatterWidget(QWidget):
         colors = np.array([self.basic_color]*len(self.data['color']))
         colors[indices] = self.match_color
         self.data['color'] = colors
+        self._convert_from_hex()
 
         # Size-adjustment
         min_size, max_size = np.min(self.data['size']), np.max(self.data['size'])
@@ -96,6 +101,18 @@ class ScatterWidget(QWidget):
         self._order_points_in_plot()
         self.fill_scatter()
     
+
+    def _set_initial_range(self):
+        """Set initial view range to fit all points."""
+        pos = np.asarray(self.data['pos'])
+        x_min, x_max = pos[:, 0].min(), pos[:, 0].max()
+        y_min, y_max = pos[:, 1].min(), pos[:, 1].max()
+        self.vb.setRange(
+            xRange=(x_min, x_max),
+            yRange=(y_min, y_max),
+            padding=0.05
+        )
+
 
     def _order_points_in_plot(self) -> None:
         """Function to place bigger points behind normal sized points to increase explorability of data close to matching points."""
