@@ -58,34 +58,50 @@ def audio_embeddings_with_paths(folder_path):
             continue
 
 
-def create_faiss(folder_path):
+def create_faiss(sample_dir:str, dst_dir:str) -> dict:
     """
-    creates annoy index and json file mapping index to audio path
+    Creates annoy index and json file mapping index to audio path
     
     Args:
-        folder_path (str): path to folder containing audios
+        folder_path (str): Path to folder containing audios
+        dst_dir (str): Diretory where faiss-index & mapping-json are stored.
 
+    Returns:
+        path_mapping (dict): Dictionary containing faiss-IDs, paths and embeddings.
     """
+    # Init dict to store as json later
+    path_mapping = {
+        "id" : None,
+        "path" : [],
+        "embedding" : []
+    }
+    
+    # Iteratively fill mapping dir
+    for i, (path, embedding) in enumerate(audio_embeddings_with_paths(sample_dir)):
+        path_mapping["path"].append(str(path))
+        path_mapping["embedding"].append(embedding)
 
-    path_mapping = {}
-
-    ids = []
-    embeds = []
-    for i, (path, embedding) in enumerate(audio_embeddings_with_paths(folder_path)):
-        ids.append(i)
-
-        embeds.append(embedding)
-        path_mapping[i] = str(path)
-
-    embeds = np.vstack([e.squeeze() for e in embeds]).astype(np.float32)
+    # reformat list of embeds to faiss-accepted form
+    embeds = np.vstack([e.squeeze() for e in path_mapping["embeddings"]]).astype(np.float32)
     faiss.normalize_L2(embeds)
-    ids = np.array(ids).astype(np.int64)
 
+    # Create IDs for faiss and json
+    if len(path_mapping["path"] == len(path_mapping["embedding"])):
+        path_mapping["id"] = np.arange(start=0,
+                                       stop=len(path_mapping["path"]),
+                                       step=1,
+                                       dtype=np.int64)
+    else:
+        raise IndexError("Paths and created embeddings to not correspond: unequal length of lists. (Either path(s) or embedding(s) missing")
+
+    # Build index
     index = faiss.IndexIDMap(faiss.IndexFlatIP(embeds[0].shape[-1]))
-    index.add_with_ids(embeds, ids)
-    faiss.write_index(index, "audios.faiss")
+    index.add_with_ids(embeds, path_mapping["id"])
+    faiss.write_index(index, os.path.join(dst_dir, "audio.faiss"))
 
-    with open("audiopath_mapping.json", "w") as f:
+    # Store JSON
+    json_path = os.path.join(dst_dir, "audiopath_mapping.json")
+    with open(json_path, "w") as f:
         json.dump(path_mapping, f)
         
 
@@ -124,8 +140,3 @@ def add_audios(folder_path):
     with open("audiopath_mapping.json", "w") as f:
         json.dump(path_mapping, f)
     
-
-if __name__ == "__main__":
-    cwd = os.getcwd()
-    path_to_database = r"C:\Users\joche\Music\Samples"
-    create_faiss(path_to_database)

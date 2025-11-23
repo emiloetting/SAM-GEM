@@ -13,6 +13,7 @@ from sklearn.decomposition import PCA
 from umap import UMAP
 from tqdm import tqdm
 from warnings import warn
+from create_faiss_index import audio_embeddings_with_paths, create_faiss, add_audios
 
 
 
@@ -45,9 +46,11 @@ class InterFacer():
             print("WARNING: No directory selected. Backend initialization cancelled!")
             return
         
+        # Get mapping containing indices, embeddings and filepaths of all scanned samples
+        feature_mappings = create_faiss(sample_dir=self.sample_dir,
+                                        dst_dir=backend_data_dir)
         
         
-
     def set_sample_dir(self, parent:QWidget) -> None:
         """ Sets dir at given URL as parent dir containing all audio samples within subdirectories."""
         dir = QFileDialog.getExistingDirectory(
