@@ -1,0 +1,1 @@
+Minimum von 20 samples wegen IncrementalPCA

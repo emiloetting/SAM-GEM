@@ -1,4 +1,5 @@
 import sys
+import os
 import numpy as np  
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, 
                                QVBoxLayout, QHBoxLayout, QPushButton, 
@@ -11,7 +12,7 @@ from src.interface import InterFacer
 
 MATCH_COLOR = '#fa3737'
 BASIC_COLOR = '#7aabfa'
-
+CWD = os.getcwd()
 
 
 class GUI(QMainWindow):
@@ -24,7 +25,7 @@ class GUI(QMainWindow):
 
         # Define vars to hold info on selected points / matches
         # TODO: UPDATE PATHS
-        self.interfacer = InterFacer()
+        self.interfacer = InterFacer(cwd=CWD)
         self.currently_selected = r"demo_audio\ah_chd120_upstate_B.wav"    # as current placeholder
         self.first_match_pth = r"demo_audio\ah_chd120_upstate_B.wav"
         self.second_match_pth = r"demo_audio\BOS_BRT_Kick_Rumble_One_Shot_Gestalt.wav"
@@ -73,8 +74,9 @@ class GUI(QMainWindow):
         self.menu.addAction("Exit")
 
         # Implement menu actions
-        self.menu.actions()[4].triggered.connect(lambda: sys.exit())    # close app
+        self.menu.actions()[0].triggered.connect(lambda: self.interfacer.full_setup(self))
         self.menu.actions()[1].triggered.connect(lambda: self.interfacer.set_sample_dir(self))
+        self.menu.actions()[4].triggered.connect(lambda: sys.exit())    # close app
         # ============================================= TOP ==========================================
         # ===LEFT COL=================================================================================
         # WAVEFORMS OF TOP 3 MATCHES
