@@ -6,7 +6,7 @@ from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget,
                                QFrame, QMenuBar)
 from PySide6.QtCore import Qt
 from src.plotting import ScatterWidget, DraggableWaveform
-
+from src.interface import InterFacer
 
 
 MATCH_COLOR = '#fa3737'
@@ -24,6 +24,7 @@ class GUI(QMainWindow):
 
         # Define vars to hold info on selected points / matches
         # TODO: UPDATE PATHS
+        self.interfacer = InterFacer()
         self.currently_selected = r"demo_audio\ah_chd120_upstate_B.wav"    # as current placeholder
         self.first_match_pth = r"demo_audio\ah_chd120_upstate_B.wav"
         self.second_match_pth = r"demo_audio\BOS_BRT_Kick_Rumble_One_Shot_Gestalt.wav"
@@ -71,9 +72,9 @@ class GUI(QMainWindow):
         self.menu.addAction("Recluster Data")
         self.menu.addAction("Exit")
 
-        # Imlement menu actions
+        # Implement menu actions
         self.menu.actions()[4].triggered.connect(lambda: sys.exit())    # close app
-
+        self.menu.actions()[1].triggered.connect(lambda: self.interfacer.set_sample_dir(self))
         # ============================================= TOP ==========================================
         # ===LEFT COL=================================================================================
         # WAVEFORMS OF TOP 3 MATCHES
