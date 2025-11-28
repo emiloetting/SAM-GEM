@@ -189,7 +189,7 @@ class ScatterWidget(QWidget):
         # Expect multiple datapoints at same position: load random! TODO: Fix Visualization so that overlaps are unlikely/impossible
         idx = randint(0, len(self.selected_sample)-1)
         print(f"Selected sample path: {self.selected_sample[idx][0]}")
-        self.gui_parent.update_currently_selected(self.selected_sample[idx][0]) 
+        self.gui_parent.currently_selected.waveform._update(self.selected_sample[idx][0]) 
 
 class DraggableWaveform(QWidget):
     """Widget displaying drag'n'droppable WAV-Form."""

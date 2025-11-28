@@ -27,7 +27,7 @@ class GUI(QMainWindow):
         # Define vars to hold info on selected points / matches
         # TODO: UPDATE PATHS
         self.interfacer = InterFacer(cwd=CWD)
-        self.currently_selected = r"demo_audio\ah_chd120_upstate_B.wav"    # as current placeholder
+        self.currently_selected = DraggableWaveform(audio_pth=None)
         self.first_match_pth = r"demo_audio\ah_chd120_upstate_B.wav"
         self.second_match_pth = r"demo_audio\BOS_BRT_Kick_Rumble_One_Shot_Gestalt.wav"
         self.third_match_pth = r"demo_audio\dhg_hat_usg.wav"
@@ -126,8 +126,8 @@ class GUI(QMainWindow):
         
         self.scatter.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.right.addWidget(self.scatter, stretch=8)
-        self.selected_waveform = self.make_match_frame("CURRENTLY SELECTED: ", self.scatter.selected_sample) 
-        self.right.addWidget(self.selected_waveform, stretch=1)
+        self.currently_selected = self.make_match_frame("CURRENTLY SELECTED: ", self.scatter.selected_sample) 
+        self.right.addWidget(self.currently_selected, stretch=1)
         self.right.addStretch(1)
 
         top.addLayout(self.left, stretch=4)
@@ -216,7 +216,9 @@ class GUI(QMainWindow):
         frame_layout = QVBoxLayout(frame)
         frame_layout.setContentsMargins(8, 8, 8, 8)
         frame_layout.addStretch()
-        frame_layout.addWidget(DraggableWaveform(audio_pth))
+        waveform = DraggableWaveform(audio_pth)
+        container.waveform = waveform
+        frame_layout.addWidget(container.waveform)
 
         container_layout.addWidget(label)
         container_layout.addWidget(frame, 1) 
@@ -250,26 +252,7 @@ class GUI(QMainWindow):
 
         # Update scatter using newly defined data-dict
         self.scatter.update_plot(match_ids=match_ids, data=self.data_dict)
-
-
-    def update_currently_selected(self, sample_pth:str) -> None:
-        """Updates visualization of CURRENTLY SELECTED to display WAV-form of currently selected sample.
         
-        Args:
-            sample_pth (str): Path to selected sample.
-            
-        Returns:
-            None
-        """
-        new_waveform = self.make_match_frame(f"CURRENTLY SELECTED: {os.path.basename(sample_pth)}", sample_pth)
-
-        # Remove old widget
-        self.right.removeWidget(self.selected_waveform)
-        self.selected_waveform.deleteLater()
-
-        # Add new widget at old position (before stretch)
-        self.right.insertWidget(1, new_waveform, stretch=1)
-        self.selected_waveform = new_waveform
 
 
 if __name__ == '__main__':
