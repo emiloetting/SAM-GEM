@@ -193,8 +193,9 @@ class ScatterWidget(QWidget):
 
 class DraggableWaveform(QWidget):
     """Widget displaying drag'n'droppable WAV-Form."""
-    def __init__(self, audio_pth: str, wav_color: str = '#fa3737', parent=None) -> None:
-        super().__init__(parent)
+    def __init__(self, audio_pth: str, parent_gui, wav_color: str = '#fa3737') -> None:
+        super().__init__()
+        self.parent_gui = parent_gui
         self.audio_pth = None
         if not (audio_pth is None):
             self.audio_pth = os.path.abspath(audio_pth)
@@ -237,6 +238,8 @@ class DraggableWaveform(QWidget):
         """Defines behavior on mouse press event for drag & drop."""
         if event.button() == Qt.LeftButton:
             self._drag_start_pos = event.position().toPoint()   # set start pos to later start drag if mouse moved enough
+            self.parent_gui.player.setSource(QUrl.fromLocalFile(self.audio_pth))
+            self.parent_gui.player.play()
         super().mousePressEvent(event)
 
 

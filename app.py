@@ -5,11 +5,19 @@ from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget,
                                QVBoxLayout, QHBoxLayout, QPushButton, 
                                QLabel, QLineEdit, QSizePolicy,
                                QFrame, QMenuBar)
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QUrl, QLoggingCategory
+from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput
 from src.plotting import ScatterWidget, DraggableWaveform
 from src.interface import InterFacer
 
 
+# Verbose = False for audio output
+QLoggingCategory.setFilterRules("""
+qt.multimedia.ffmpeg.*=false
+""")
+
+
+AUDIO_VOLUME = 0.8
 MATCH_COLOR = '#fa3737'
 BASIC_COLOR = '#7aabfa'
 K_MATCHES = 3
@@ -27,11 +35,18 @@ class GUI(QMainWindow):
         # Define vars to hold info on selected points / matches
         # TODO: UPDATE PATHS
         self.interfacer = InterFacer(cwd=CWD)
-        self.currently_selected = DraggableWaveform(audio_pth=None)
+        self.currently_selected = DraggableWaveform(audio_pth=None, parent_gui=self)
         self.first_match_pth = r"demo_audio\ah_chd120_upstate_B.wav"
         self.second_match_pth = r"demo_audio\BOS_BRT_Kick_Rumble_One_Shot_Gestalt.wav"
         self.third_match_pth = r"demo_audio\dhg_hat_usg.wav"
         self.data_dict = None
+        
+        # Audio support
+        self.audio = QAudioOutput()
+        self.audio.setVolume(AUDIO_VOLUME)   # adapt to taste
+        self.player = QMediaPlayer()
+        self.player.setAudioOutput(self.audio)
+
 
         # Fill main window with actual widget
         central = QWidget()
@@ -216,7 +231,7 @@ class GUI(QMainWindow):
         frame_layout = QVBoxLayout(frame)
         frame_layout.setContentsMargins(8, 8, 8, 8)
         frame_layout.addStretch()
-        waveform = DraggableWaveform(audio_pth)
+        waveform = DraggableWaveform(audio_pth, parent_gui=self)
         container.waveform = waveform
         frame_layout.addWidget(container.waveform)
 
@@ -252,7 +267,7 @@ class GUI(QMainWindow):
 
         # Update scatter using newly defined data-dict
         self.scatter.update_plot(match_ids=match_ids, data=self.data_dict)
-        
+
 
 
 if __name__ == '__main__':
