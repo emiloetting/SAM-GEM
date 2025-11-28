@@ -2,6 +2,8 @@ import os
 import numpy as np
 import soundfile as sf
 import pyqtgraph as pg
+from random import randint
+from src.interface import InterFacer
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QApplication
 from PySide6.QtGui import QColor, QDrag, QMouseEvent
 from PySide6.QtCore import (QPoint, Qt, QUrl, 
@@ -12,19 +14,26 @@ from PySide6.QtCore import (QPoint, Qt, QUrl,
 class ScatterWidget(QWidget):
     """Class to create scatterplot of audio features via PyQtGraph."""
     def __init__(self, init_data: dict, 
+                 gui_interfacer: InterFacer,
+                 gui_parent,    # TypeHinting not easily possible due to cross-imports
                  bg_color: str = '#FFFFFF', 
                  match_color: str = '#7aabfa', 
                  basic_color: str = '#fa3737') -> None: 
+        
         # Init parent object
         super().__init__() 
+        self.gui_interfacer = gui_interfacer
+        self.gui_parent = gui_parent
 
         # Load and format initial data
         self.data = init_data
         self._convert_from_hex()
 
-        # Define colors to update point colors later
+        # Define colors & sizes to update point colors later
         self.match_color = match_color
-        self.basic_color = basic_color
+        self.normal_color = basic_color
+        self.normal_size = 1
+        self.match_size = 3
 
         # Create pyQtGraph
         self.plot = pg.PlotWidget(background=bg_color)
@@ -40,18 +49,24 @@ class ScatterWidget(QWidget):
         self.scatter = None # will be created in fill_scatter
         self.fill_scatter()
 
+        # Store path of selected audio sample
+        self.selected_sample = None
+        
 
     def _connect_interactions(self) -> None:
         """Connect interaction events to functions."""
         self.scatter.sigClicked.connect(self.on_point_clicked)
 
 
-    def load_data(self, data: dict) -> None:
+    def load_data(self, data: dict|None) -> None:
         """Load data into scatter plot widget.
         
         Args:
-            data (dict): Dictionary containing 'pos', 'size', and 'color' keys.
+            data (dict|None): Dictionary containing 'pos', 'size', and 'color' keys. If 'None', self.data will be selected!
         """
+        if data is None:
+            data = self.data    # Safety mechanism
+
         # Check passed data
         assert all(key in data for key in ['pos', 'size', 'color']),                     "Data dictionary must contain 'pos', 'size', and 'color' keys."
         assert data['pos'].shape[1] == 2,                                                "Position data must be 2-dimensional." 
@@ -111,34 +126,79 @@ class ScatterWidget(QWidget):
         pos = np.asarray(self.data['pos'])
         x_min, x_max = pos[:, 0].min(), pos[:, 0].max()
         y_min, y_max = pos[:, 1].min(), pos[:, 1].max()
-        self.vb.setRange(
-            xRange=(x_min, x_max),
-            yRange=(y_min, y_max),
+        abs_min = min(x_min, y_min)
+        abs_max = max(x_max, y_max)
+        self.scatter.getViewBox().setRange(
+            xRange=(abs_min, abs_max),
+            yRange=(abs_min, abs_max),
             padding=0.05
         )
 
 
     def _order_points_in_plot(self) -> None:
-        """Function to place bigger points behind normal sized points to increase explorability of data close to matching points."""
+        """Method to place bigger points behind normal sized points to increase explorability of data close to matching points."""
         sort_idx = np.argsort(self.data['size'])[::-1]  # indices to sort sizes descending
         self.data['size'] = np.array(self.data['size'])[sort_idx]
         self.data['color'] = np.array(self.data['color'])[sort_idx]
         self.data['pos'] = np.array(self.data['pos'])[sort_idx]
 
 
+    def update_plot(self, match_ids:list[int], data:dict) -> None:
+        """Method to update plot based on user input.
+        
+        Args:
+            ids (list[int]): List of IDs of best matches.
+            data (dict): Dictionary containing information on position and IDs
+        
+        Returns:
+            None
+        """
+        #TODO: set new data dict into self.data based on passed IDs 
+        # Validate match-IDs
+        assert len(data["pos"]) == len(data["ids"]), f"Unequal amount of IDs and positional information provided!"
+        for id in match_ids:
+            if not id in data["ids"]:
+                raise ValueError("Unknown ID passed as match!")
+            
+        match_ids = np.array(match_ids)
+        data_pos = np.array(data["pos"])
+        data_ids = np.array(data["ids"])
+
+        real_matching_idcs = np.argwhere(np.isin(data_ids, match_ids)).flatten()
+        sizes = np.array([self.normal_size]*len(data_ids))
+        sizes[real_matching_idcs] = self.match_size
+        colors = np.array([self.normal_color]*len(data_ids))
+        colors[real_matching_idcs] = self.match_color
+
+        new_data = {
+            'pos': data_pos,
+            'size': sizes,
+            'color': colors
+            
+        }
+
+        self.load_data(data=new_data)
+        
+        
     def on_point_clicked(self, scatter, points):
         """Defines action on point click - currently only debug output."""
         for p in points:
             print(f"Clicked on point at: {p.pos()}")
-        #TODO: Fill with useful stuff
+        self.selected_sample = self.gui_interfacer._grab_path_by_pos((p.pos().x(), p.pos().y()))
 
+        # Expect multiple datapoints at same position: load random! TODO: Fix Visualization so that overlaps are unlikely/impossible
+        idx = randint(0, len(self.selected_sample)-1)
+        print(f"Selected sample path: {self.selected_sample[idx][0]}")
+        self.gui_parent.update_currently_selected(self.selected_sample[idx][0]) 
 
 class DraggableWaveform(QWidget):
-    """Widget mit Waveform-Anzeige + Drag&Drop der zugehörigen Audiodatei."""
+    """Widget displaying drag'n'droppable WAV-Form."""
     def __init__(self, audio_pth: str, wav_color: str = '#fa3737', parent=None) -> None:
         super().__init__(parent)
+        self.audio_pth = None
+        if not (audio_pth is None):
+            self.audio_pth = os.path.abspath(audio_pth)
 
-        self.audio_pth = os.path.abspath(audio_pth)
         self.wav_clr = wav_color
         self._drag_start_pos = QPoint()
 
@@ -146,6 +206,7 @@ class DraggableWaveform(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
 
         # Create Widget to plot waveform
+        #TODO:Implement feature to play sound on click
         self.plot_widget = DraggablePlotWidget(self)
         self.plot_widget.setBackground(None)
         self.plot_widget.hideAxis("bottom")
@@ -158,6 +219,9 @@ class DraggableWaveform(QWidget):
 
     def show_wav(self) -> None:
         """Loads and displays waveform of audio file."""
+        if self.audio_pth is None:
+            return  # Early return
+        
         data, samplerate = sf.read(self.audio_pth)
 
         if data.ndim > 1:
@@ -178,7 +242,7 @@ class DraggableWaveform(QWidget):
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:
         """Defines behavior on mouse move event for drag & drop."""
-        #Check if left button is pressed
+        # Check if left button is pressed
         if not (event.buttons() & Qt.LeftButton):
             return
 
