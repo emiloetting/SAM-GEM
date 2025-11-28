@@ -20,6 +20,7 @@ qt.multimedia.ffmpeg.*=false
 AUDIO_VOLUME = 0.8
 MATCH_COLOR = '#fa3737'
 BASIC_COLOR = '#7aabfa'
+BACKGROUND_COLOR = '#1f1f1f'
 K_MATCHES = 3
 CWD = os.getcwd()
 
@@ -35,10 +36,10 @@ class GUI(QMainWindow):
         # Define vars to hold info on selected points / matches
         # TODO: UPDATE PATHS
         self.interfacer = InterFacer(cwd=CWD)
-        self.currently_selected = DraggableWaveform(audio_pth=None, parent_gui=self)
-        self.first_match_pth = r"demo_audio\ah_chd120_upstate_B.wav"
-        self.second_match_pth = r"demo_audio\BOS_BRT_Kick_Rumble_One_Shot_Gestalt.wav"
-        self.third_match_pth = r"demo_audio\dhg_hat_usg.wav"
+        self.currently_selected = None
+        self.first_match_pth = None
+        self.second_match_pth = None
+        self.third_match_pth = None
         self.data_dict = None
         
         # Audio support
@@ -50,7 +51,7 @@ class GUI(QMainWindow):
 
         # Fill main window with actual widget
         central = QWidget()
-        central.setStyleSheet("background-color: #1f1f1f;")     # TODO: Change color
+        central.setStyleSheet(f"background-color: {BACKGROUND_COLOR};")     
         self.setCentralWidget(central)
 
         root = QVBoxLayout(central)      # main layout is vertical
@@ -132,7 +133,7 @@ class GUI(QMainWindow):
                                 [MATCH_COLOR]*3 + 
                                 [BASIC_COLOR]*500}
         self.scatter = ScatterWidget(
-                                init_data=demo_data,
+                                init_data=None,
                                 gui_interfacer=self.interfacer,
                                 gui_parent=self,
                                 bg_color='#1f1f1f',
@@ -204,7 +205,6 @@ class GUI(QMainWindow):
 
         Args:
             text (str): Label text.
-            frame_style (str): Style sheet for frame.
             audio_pth (str): Path to audio file to display.
         Returns:
             QWidget: Container widget with label and frame.

@@ -3,8 +3,7 @@ from pathlib import Path
 import tqdm
 import os
 import faiss
-import torch
-import json
+from typing import Tuple
 import ffmpeg
 
 from src.model import MODEL
@@ -53,7 +52,7 @@ def audio_embeddings_with_paths(folder_path):
             continue
 
 
-def create_faiss(sample_dir:str, dst_dir:str) -> tuple[faiss.IndexIDMap, dict]:
+def create_faiss(sample_dir:str, dst_dir:str) -> Tuple[faiss.IndexIDMap, dict]:
     """
     Creates annoy index and json file mapping index to audio path
     
@@ -96,4 +95,4 @@ def create_faiss(sample_dir:str, dst_dir:str) -> tuple[faiss.IndexIDMap, dict]:
     index.add_with_ids(embeds, path_mapping["id"])
     faiss.write_index(index, os.path.join(dst_dir, "audio.faiss"))
 
-    return tuple(index, path_mapping)
+    return (index, path_mapping)

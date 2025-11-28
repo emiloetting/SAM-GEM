@@ -86,7 +86,7 @@ class InterFacer():
         self.umap = self._train_umap(dst_pth=umap_dst_pth,
                                         embeds=pca_embeds)
         two_dim_embeds = self._reduce_to_2(embeds=pca_embeds, 
-                                           umap=self.trained_umap)
+                                           umap=self.umap)
         
         # FILL DATABASE
         # Sanity check
@@ -436,7 +436,3 @@ class InterFacer():
         except:
             print("WARNING: Connection to IPCA-object could not be established")
         
-        # Debug
-        print("Loaded index: ",self.index)
-        print("Loaded umap: ",self.umap)
-        print("Loaded ipca: ",self.ipca)

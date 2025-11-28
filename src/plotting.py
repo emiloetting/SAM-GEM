@@ -10,10 +10,11 @@ from PySide6.QtCore import (QPoint, Qt, QUrl,
                             QMimeData)
 
 
-
+NORMAL_SIZE = .05
+MATCH_SIZE = 0.15
 class ScatterWidget(QWidget):
     """Class to create scatterplot of audio features via PyQtGraph."""
-    def __init__(self, init_data: dict, 
+    def __init__(self, init_data: dict|None, 
                  gui_interfacer: InterFacer,
                  gui_parent,    # TypeHinting not easily possible due to cross-imports
                  bg_color: str = '#FFFFFF', 
@@ -26,14 +27,21 @@ class ScatterWidget(QWidget):
         self.gui_parent = gui_parent
 
         # Load and format initial data
-        self.data = init_data
+        if init_data is None:
+            self.data = {
+                "pos": [],
+                "color" : [],
+                "size" : []
+            }
+        else:
+            self.data = init_data
         self._convert_from_hex()
 
         # Define colors & sizes to update point colors later
         self.match_color = match_color
         self.normal_color = basic_color
-        self.normal_size = 1
-        self.match_size = 3
+        self.normal_size = NORMAL_SIZE
+        self.match_size = MATCH_SIZE
 
         # Create pyQtGraph
         self.plot = pg.PlotWidget(background=bg_color)
@@ -178,6 +186,11 @@ class ScatterWidget(QWidget):
         }
 
         self.load_data(data=new_data)
+
+        paths = self.gui_interfacer._grab_paths_from_db(ids=match_ids)
+        self.gui_parent.first_frame.waveform._update(paths[0][0])
+        self.gui_parent.second_frame.waveform._update(paths[1][0])
+        self.gui_parent.third_frame.waveform._update(paths[2][0])
         
         
     def on_point_clicked(self, scatter, points):
