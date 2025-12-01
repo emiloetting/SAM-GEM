@@ -234,7 +234,7 @@ class GUI(QMainWindow):
         waveform = DraggableWaveform(audio_pth, parent_gui=self)
         container.waveform = waveform
         frame_layout.addWidget(container.waveform)
-
+        frame_layout.addStretch()
         container_layout.addWidget(label)
         container_layout.addWidget(frame, 1) 
 

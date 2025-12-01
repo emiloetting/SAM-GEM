@@ -4,7 +4,8 @@ import soundfile as sf
 import pyqtgraph as pg
 from random import randint
 from src.interface import InterFacer
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QApplication
+from PySide6.QtWidgets import (QWidget, QVBoxLayout, QApplication,
+                               QSizePolicy)
 from PySide6.QtGui import QColor, QDrag, QMouseEvent
 from PySide6.QtCore import (QPoint, Qt, QUrl, 
                             QMimeData)
@@ -226,7 +227,7 @@ class DraggableWaveform(QWidget):
         self.plot_widget.hideAxis("bottom")
         self.plot_widget.hideAxis("left")
         self.plot_widget.setMouseEnabled(x=False, y=False)
-
+        self.plot_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         layout.addWidget(self.plot_widget)  # add to layout
         self.show_wav()  # draw waveform
 
@@ -245,6 +246,9 @@ class DraggableWaveform(QWidget):
 
         pen = pg.mkPen(color=self.wav_clr, width=1.5)   # define line settings
         self.plot_widget.plot(t_steps, data, pen=pen, clear=True)     # update plot
+
+        max_amp = np.max(np.abs(data))
+        self.plot_widget.setYRange(-max_amp, max_amp, padding=0)    # Set range to center waveform 
 
 
     def mousePressEvent(self, event: QMouseEvent) -> None:
