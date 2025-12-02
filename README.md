@@ -1,1 +1,4 @@
-<img width="1080" height="538" alt="SAM-GEM Logo (2) (1)" src="https://github.com/user-attachments/assets/c347be32-ec01-4fd3-aeb0-f02f9dafc943" />
+# Find Your Sound with...
+
+<img width="1080" height="510" alt="SAM-GEM Logo (2) (1)" src="https://github.com/user-attachments/assets/772d0e79-b3b5-4c75-a2c3-36e70edead7d" />
+
