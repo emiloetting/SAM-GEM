@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import numpy as np
 import soundfile as sf
 import pyqtgraph as pg
@@ -212,7 +213,7 @@ class DraggableWaveform(QWidget):
         self.parent_gui = parent_gui
         self.audio_pth = None
         if not (audio_pth is None):
-            self.audio_pth = os.path.abspath(audio_pth)
+            self.audio_pth = Path(audio_pth).resolve()
 
         self.wav_clr = wav_color
         self._drag_start_pos = QPoint()
@@ -271,7 +272,7 @@ class DraggableWaveform(QWidget):
             return
 
         # Validate path to audio file
-        if not os.path.isfile(self.audio_pth):
+        if not self.audio_pth or not self.audio_pth.is_file():
             print("Traying to drag non-existing file: \n", self.audio_pth)
             return
 
@@ -288,7 +289,7 @@ class DraggableWaveform(QWidget):
         Args:
             new_path (str): New path to audio file.
         """
-        self.audio_pth = os.path.abspath(new_path)
+        self.audio_pth = Path(new_path).resolve()
         self.show_wav()
     
 class DraggablePlotWidget(pg.PlotWidget):
