@@ -1,17 +1,12 @@
 import numpy as np
 from pathlib import Path
 import tqdm
-import os
+from pathlib import Path
 import faiss
 from typing import Tuple
 import ffmpeg
 
 from src.model import MODEL
-
-
-cwd = os.getcwd()
-path_to_database = os.path.join(cwd, "DataBase")
-
 
 
 def audio_embeddings_with_paths(folder_path):
@@ -52,13 +47,13 @@ def audio_embeddings_with_paths(folder_path):
             continue
 
 
-def create_faiss(sample_dir:str, dst_dir:str) -> Tuple[faiss.IndexIDMap, dict]:
+def create_faiss(sample_dir:str, dst_dir:Path) -> Tuple[faiss.IndexIDMap, dict]:
     """
     Creates annoy index and json file mapping index to audio path
     
     Args:
         folder_path (str): Path to folder containing audios
-        dst_dir (str): Diretory where faiss-index & mapping-json are stored.
+        dst_dir (Path): Diretory where faiss-index & mapping-json are stored.
 
     Returns:
         path_mapping (dict): Dictionary containing faiss-IDs, paths and embeddings.
@@ -93,6 +88,6 @@ def create_faiss(sample_dir:str, dst_dir:str) -> Tuple[faiss.IndexIDMap, dict]:
     # Build index
     index = faiss.IndexIDMap(faiss.IndexFlatIP(embeds[0].shape[-1]))
     index.add_with_ids(embeds, path_mapping["id"])
-    faiss.write_index(index, os.path.join(dst_dir, "audio.faiss"))
+    faiss.write_index(index, str(Path(dst_dir)/"audio.faiss"))
 
     return (index, path_mapping)

@@ -6,6 +6,7 @@
 #   - RECLUSTER DATA 
 
 import os
+from pathlib import Path
 import sqlite3 
 import pickle
 import time
@@ -25,7 +26,7 @@ class InterFacer():
     """Class to handle backend functionality for GUI."""
     def __init__(self, cwd:str) -> None:
         self.cwd = cwd  # set working dir
-        self.backend_data_dir = os.path.join(self.cwd, "data")
+        self.backend_data_dir = Path(cwd)/"data"
         self.db_con = None  # connection to db
         self.crs = None
         self.faiss = None
@@ -41,11 +42,9 @@ class InterFacer():
         """Method to automatically fully create backend structure."""
         start = time.time()
         # Define dir where faiss index, DB, PCA and UMAP obejcts are stored
-        backend_data_dir = os.path.join(self.cwd,"data")
 
         # Create backend-dir if non-existent
-        if not os.path.exists(backend_data_dir):
-            os.makedirs(backend_data_dir, exist_ok=True)
+        self.backend_data_dir.mkdir(parents=True, exist_ok=True)
         
         # Make user select sample dir
         self.set_sample_dir(parent=parent)
@@ -57,33 +56,33 @@ class InterFacer():
         
         # Get build index & mapping containing indices, embeddings and filepaths of all scanned samples
         index, feature_mappings = create_faiss(sample_dir=self.sample_dir,
-                                        dst_dir=backend_data_dir)
+                                        dst_dir=self.backend_data_dir)
         self.index = index
 
 
         # Create (new) DB
         db_name = "storage.db"
-        successful_creation = self._create_new_db(dst_dir=backend_data_dir,
+        successful_creation = self._create_new_db(dst_dir=self.backend_data_dir,
                             db_name=db_name)
         if not successful_creation:
             ("Abort backend initialization")
             return
         
         # Connect to newly created db
-        db_pth = os.path.join(backend_data_dir, db_name)
+        db_pth = self.backend_data_dir/db_name
         self._connect_db(db_pth)
 
         # Train PCA object and reduce embeds
-        pca_dst_pth = os.path.join(backend_data_dir, "ipca.pkl")
+        pca_dst_pth = self.backend_data_dir/"ipca.pkl"
         print("Amount embeds: ",len(feature_mappings["embedding"]))
-        self.ipca = self._train_pca(dst_pth=pca_dst_pth,
+        self.ipca = self._train_pca(dst_pth=str(pca_dst_pth),
                                        embeds=feature_mappings["embedding"])
         pca_embeds = self._reduce_to_20(embeds=feature_mappings["embedding"],
                                         ipca=self.ipca)
         
         # Train UMAP object and reduce embeddings pre-reduced by pca
-        umap_dst_pth = os.path.join(backend_data_dir, "umap.pkl")
-        self.umap = self._train_umap(dst_pth=umap_dst_pth,
+        umap_dst_pth = self.backend_data_dir/"umap.pkl"
+        self.umap = self._train_umap(dst_pth=str(umap_dst_pth),
                                         embeds=pca_embeds)
         two_dim_embeds = self._reduce_to_2(embeds=pca_embeds, 
                                            umap=self.umap)
@@ -121,7 +120,7 @@ class InterFacer():
         self.sample_dir = dir   # Set sample_dir
     
     
-    def _create_new_db(self, dst_dir:str, db_name:str) -> bool:
+    def _create_new_db(self, dst_dir:Path, db_name:str) -> bool:
         """Method to create and save new database ("storage.db") containing ID, paths, embeddings, x_pos, y_pos.\n
         **WARNING**: Will overwrite existing database if found!
         
@@ -133,14 +132,13 @@ class InterFacer():
             success (bool): Whether or not DB and table were created successfully.
         """
         try:
-            # Establish connection (auto-create)
-            dst = os.path.join(dst_dir, db_name)
+            dst = dst_dir/db_name
 
             # Delete pre-existing db 
-            if os.path.exists(dst):
+            if dst.exists():
                 os.remove(dst)
             
-            con = sqlite3.connect(dst)
+            con = sqlite3.connect(dst.as_posix())
             crs = con.cursor()
 
             # Create single main table
@@ -163,7 +161,7 @@ class InterFacer():
             return False    # signal of failure
         
 
-    def _connect_db(self, pth:str) -> None:
+    def _connect_db(self, pth:Path) -> None:
         """Connects to database at given path.
         
         Args:
@@ -173,10 +171,10 @@ class InterFacer():
             None
         """
         # Check file existence
-        if (not os.path.exists(pth)) or (not os.path.isfile(pth)) or (not pth.endswith("db")):
+        if not pth.exists() or not pth.is_file() or not pth.suffix == ".db": 
             raise FileNotFoundError(f"No valid datebase found at {pth}!")
         
-        self.db_con = sqlite3.connect(pth)
+        self.db_con = sqlite3.connect(pth.as_posix())
         self.crs = self.db_con.cursor()
         
 
@@ -205,7 +203,8 @@ class InterFacer():
             ipca.partial_fit(embeds)
 
         # Store as .pkl
-        with open(os.path.join(self.backend_data_dir,"ipca.pkl"), "wb") as f:
+        
+        with (self.backend_data_dir/"ipca.pkl").open("wb") as f:
             pickle.dump(ipca, f)
         
         return ipca
@@ -249,7 +248,7 @@ class InterFacer():
         umap.fit(embeds)
 
         # Store
-        with open(os.path.join(self.backend_data_dir, "umap.pkl"), "wb") as f:
+        with (self.backend_data_dir/"umap.pkl").open("wb") as f:
             pickle.dump(umap, f)
         
         return umap
@@ -404,7 +403,7 @@ class InterFacer():
         """Tries to establish connections to / load UMAP, IPCA, FAISS-index and database."""
         # DB
         try:
-            db_path = os.path.join(self.backend_data_dir, "storage.db")
+            db_path = self.backend_data_dir/"storage.db"
             self._connect_db(pth=db_path)
             print("\nConnection to database successful.")
         except:
@@ -412,16 +411,16 @@ class InterFacer():
 
         # FAISS
         try:
-            index_pth = os.path.join(self.backend_data_dir, "audio.faiss")
-            self.index = faiss.read_index(index_pth)
+            index_pth = self.backend_data_dir/"audio.faiss"
+            self.index = faiss.read_index(str(index_pth))
             print("Connection to FAISS-index successfull.")
         except:
             print("WARNING: Conncection to FAISS-index could not be established!")
 
         # UMAP
         try:
-            umap_pth = os.path.join(self.backend_data_dir, "umap.pkl")
-            with open(umap_pth, "rb") as f:
+            umap_pth = self.backend_data_dir/"umap.pkl"
+            with umap_pth.open("rb") as f:
                 self.umap = pickle.load(f)
             print("Connection to UMAP-object successfull.")
         except:
@@ -429,8 +428,8 @@ class InterFacer():
 
         # IPCA
         try:
-            ipca_pth = os.path.join(self.backend_data_dir, "ipca.pkl")
-            with open(ipca_pth, "rb") as f:
+            ipca_pth = self.backend_data_dir/"ipca.pkl"
+            with ipca_pth.open("rb") as f:
                 self.ipca = pickle.load(f)
             print("Connection to IPCA-object successfull.")
         except:
