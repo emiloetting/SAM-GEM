@@ -139,16 +139,13 @@ class ScatterWidget(QWidget):
 
     def _set_initial_range(self):
         """Set initial view range to fit all points."""
-        pos = np.asarray(self.data['pos'])
-        x_min, x_max = pos[:, 0].min(), pos[:, 0].max()
-        y_min, y_max = pos[:, 1].min(), pos[:, 1].max()
-        abs_min = min(x_min, y_min)
-        abs_max = max(x_max, y_max)
-        self.scatter.getViewBox().setRange(
-            xRange=(abs_min, abs_max),
-            yRange=(abs_min, abs_max),
-            padding=0.05
-        )
+        # pos = np.asarray(self.data['pos'])
+        # x_min, x_max = pos[:, 0].min(), pos[:, 0].max()
+        # y_min, y_max = pos[:, 1].min(), pos[:, 1].max()
+        # abs_min = min(x_min, y_min)
+        # abs_max = max(x_max, y_max)
+        self.scatter.getViewBox().setAspectLocked(True) 
+        self.plot.enableAutoRange()
 
 
     def _order_points_in_plot(self) -> None:
