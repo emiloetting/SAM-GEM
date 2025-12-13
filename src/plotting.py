@@ -21,7 +21,8 @@ class ScatterWidget(QWidget):
                  gui_parent,    # TypeHinting not easily possible due to cross-imports
                  bg_color: str = '#FFFFFF', 
                  match_color: str = '#7aabfa', 
-                 basic_color: str = '#fa3737') -> None: 
+                 basic_color: str = '#fa3737',
+                 selected_color: str = "#FAD400") -> None: 
         
         # Init parent object
         super().__init__() 
@@ -42,6 +43,7 @@ class ScatterWidget(QWidget):
         # Define colors & sizes to update point colors later
         self.match_color = match_color
         self.normal_color = basic_color
+        self.selected_color = selected_color
         self.normal_size = NORMAL_SIZE
         self.match_size = MATCH_SIZE
 
@@ -62,6 +64,10 @@ class ScatterWidget(QWidget):
         # Store path of selected audio sample
         self.selected_sample = None
         
+        # Last clicked point
+        self.last_clicked = None
+        self.last_clicked_style = (None, None)    # (brush, size)
+
 
     def _connect_interactions(self) -> None:
         """Connect interaction events to functions."""
@@ -180,31 +186,56 @@ class ScatterWidget(QWidget):
         colors = np.array([self.normal_color]*len(data_ids))
         colors[real_matching_idcs] = self.match_color
 
-        new_data = {
+        self.new_data = {
             'pos': data_pos,
             'size': sizes,
-            'color': colors
-            
+            'color': colors     
         }
 
-        self.load_data(data=new_data)
+        self.load_data(data=self.new_data)
 
         paths = self.gui_interfacer._grab_paths_from_db(ids=match_ids)
-        self.gui_parent.first_frame.waveform._update(paths[0][0])
-        self.gui_parent.second_frame.waveform._update(paths[1][0])
-        self.gui_parent.third_frame.waveform._update(paths[2][0])
+        self.gui_parent.first_frame.waveform._update(new_path=paths[0][0], 
+                                                     color=self.match_color)
+        self.gui_parent.second_frame.waveform._update(new_path=paths[1][0],
+                                                      color=self.match_color)
+        self.gui_parent.third_frame.waveform._update(new_path=paths[2][0],
+                                                      color=self.match_color)
         
         
     def on_point_clicked(self, scatter, points):
         """Defines action on point click - currently only debug output."""
         for p in points:
-            print(f"Clicked on point at: {p.pos()}")
+            print(f"Clicked on point at: {p.pos()}")    # Debug output to see whether ther were multiple points reached
         self.selected_sample = self.gui_interfacer._grab_path_by_pos((p.pos().x(), p.pos().y()))
+
+        # Set first point in points as the "real" one
+        p = points[0]
+
+        # Restore pre-selection-style 
+        if self.last_clicked is not None and self.last_clicked_style is not None:
+            brush, size = self.last_clicked_style
+            self.last_clicked.setBrush(brush)
+            self.last_clicked.setSize(size)
+        
+        # Set tuple containing new style settings
+        self.last_clicked_style = (
+            p.brush(),
+            p.size(),
+        )
+
+        # Apply selected-stylings to selected point
+        p.setBrush(self.selected_color)
+        p.setSize(self.match_size)
+
+        # select latest
+        self.last_clicked = p
 
         # Expect multiple datapoints at same position: load random! TODO: Fix Visualization so that overlaps are unlikely/impossible
         idx = randint(0, len(self.selected_sample)-1)
         print(f"Selected sample path: {self.selected_sample[idx][0]}")
-        self.gui_parent.currently_selected.waveform._update(self.selected_sample[idx][0]) 
+        self.gui_parent.currently_selected.waveform._update(new_path=self.selected_sample[idx][0], 
+                                                            color=self.selected_color) 
 
 class DraggableWaveform(QWidget):
     """Widget displaying drag'n'droppable WAV-Form."""
@@ -234,8 +265,15 @@ class DraggableWaveform(QWidget):
         self.show_wav()  # draw waveform
 
 
-    def show_wav(self) -> None:
-        """Loads and displays waveform of audio file."""
+    def show_wav(self, color:str|None=None) -> None:
+        """Loads and displays waveform of audio file.
+        
+        Args:
+            color (str|None): Color of waveform. If set to None, default color will be used.
+            
+        Returns:
+            None 
+        """
         if self.audio_pth is None:
             return  # Early return
         self.audio_pth = str(HARD_DRIVE_PREFIX+self.audio_pth[1:]) 
@@ -246,7 +284,7 @@ class DraggableWaveform(QWidget):
 
         t_steps = np.linspace(0, len(data) / samplerate, len(data)) # time steps for x-axis
 
-        pen = pg.mkPen(color=self.wav_clr, width=1.5)   # define line settings
+        pen = pg.mkPen(color=color, width=1.5)   # define line settings
         self.plot_widget.plot(t_steps, data, pen=pen, clear=True)     # update plot
 
         max_amp = np.max(np.abs(data))
@@ -284,14 +322,18 @@ class DraggableWaveform(QWidget):
         drag.exec(Qt.CopyAction)    # start drag with copy action
 
 
-    def _update(self, new_path: str) -> None:
+    def _update(self, new_path: str, color:str|None=None) -> None:
         """Update audio path and redraw waveform.
 
         Args:
             new_path (str): New path to audio file.
+            color (str|None): Color of waveform. If set to None, default color will be used.
+        
+        Returns:
+            None
         """
         self.audio_pth = os.path.abspath(new_path)
-        self.show_wav()
+        self.show_wav(color=color)
     
 class DraggablePlotWidget(pg.PlotWidget):
     """Subclass of PlotWidget to allow mouse events on parent DraggableWaveform."""

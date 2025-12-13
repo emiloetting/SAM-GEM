@@ -400,6 +400,13 @@ class InterFacer():
         return self.crs.fetchall() 
     
     
+    def _grab_id_by_pos(self, pos:tuple) -> int:
+        """Fetches ID of point at corresponding position from connected database"""
+        self.__check_db_con()
+        self.crs.execute("SELECT id from data WHERE x_pos=? AND y_pos=?;", pos)
+        return int(self.crs.fetchall()[0])
+    
+    
     def try_connections(self) -> None:
         """Tries to establish connections to / load UMAP, IPCA, FAISS-index and database."""
         # DB
