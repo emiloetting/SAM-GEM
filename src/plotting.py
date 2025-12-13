@@ -13,6 +13,7 @@ from PySide6.QtCore import (QPoint, Qt, QUrl,
 
 NORMAL_SIZE = .05
 MATCH_SIZE = 0.15
+HARD_DRIVE_PREFIX = "E"
 class ScatterWidget(QWidget):
     """Class to create scatterplot of audio features via PyQtGraph."""
     def __init__(self, init_data: dict|None, 
@@ -213,6 +214,7 @@ class DraggableWaveform(QWidget):
         self.audio_pth = None
         if not (audio_pth is None):
             self.audio_pth = os.path.abspath(audio_pth)
+            
 
         self.wav_clr = wav_color
         self._drag_start_pos = QPoint()
@@ -236,7 +238,7 @@ class DraggableWaveform(QWidget):
         """Loads and displays waveform of audio file."""
         if self.audio_pth is None:
             return  # Early return
-        
+        self.audio_pth = str(HARD_DRIVE_PREFIX+self.audio_pth[1:]) 
         data, samplerate = sf.read(self.audio_pth)
 
         if data.ndim > 1:
