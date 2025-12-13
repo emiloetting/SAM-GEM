@@ -3,10 +3,10 @@
 #   - PROCESS INPUT PROMPT
 #   - UPDATE WAVEFORM DISPLAYS
 #   - PLAY SOUNDS BY CLICKING ON FRAMES
-#   - RECLUSTER DATA 
+#   - RECLUSTER DATA
 
 import os
-import sqlite3 
+from sqlmodel import Session, create_engine, SQLModel, select
 import pickle
 import time
 import numpy as np
@@ -16,6 +16,7 @@ from sklearn.decomposition import IncrementalPCA
 from umap import UMAP
 from tqdm import tqdm
 from src.create_faiss_index import create_faiss
+from src.datamodels import Data
 from src.model import MODEL         # Core-model used for embedding gen in whole of project
 
 
@@ -26,8 +27,6 @@ class InterFacer():
     def __init__(self, cwd:str) -> None:
         self.cwd = cwd  # set working dir
         self.backend_data_dir = os.path.join(self.cwd, "data")
-        self.db_con = None  # connection to db
-        self.crs = None
         self.faiss = None
         self.ipca = None
         self.umap = None
@@ -49,7 +48,7 @@ class InterFacer():
         
         # Make user select sample dir
         self.set_sample_dir(parent=parent)
-        
+
         # Early return if sample_dir was not properly selected!
         if self.sample_dir is None:
             print("WARNING: No directory selected. Backend initialization canceled!")
@@ -90,19 +89,19 @@ class InterFacer():
         
         # FILL DATABASE
         # Sanity check
-        assert len(feature_mappings["id"]) == len(feature_mappings["path"]) == len(two_dim_embeds), "Incoherent amount of ids, paths and 2d-corrdinates. Database will not be filled!"
-        for i in range(len(two_dim_embeds)):
-            insertion = []
-            insertion.append(int(feature_mappings["id"][i]))
-            insertion.append(str(feature_mappings["path"][i]))
-            insertion.append(float(two_dim_embeds[i][0]))  # x-coordinate
-            insertion.append(float(two_dim_embeds[i][1]))  # y-coordinate
+        with Session(self.engine) as session:
+            assert len(feature_mappings["id"]) == len(feature_mappings["path"]) == len(two_dim_embeds), "Incoherent amount of ids, paths and 2d-corrdinates. Database will not be filled!"
+            for i in range(len(two_dim_embeds)):
+                insertion = []
+                insertion.append(int(feature_mappings["id"][i]))
+                insertion.append(str(feature_mappings["path"][i]))
+                insertion.append(float(two_dim_embeds[i][0]))  # x-coordinate
+                insertion.append(float(two_dim_embeds[i][1]))  # y-coordinate
 
-            self._add2db(features=tuple(insertion),
-                         auto_commit=False)
+                self._add2db(features=tuple(insertion),
+                            auto_commit=False)
+            session.commit()
 
-        self.db_con.commit()
-        
         print(f"Backend initialization finished in {time.time() - start:.2f}s!")
         return
         
@@ -139,22 +138,9 @@ class InterFacer():
             # Delete pre-existing db 
             if os.path.exists(dst):
                 os.remove(dst)
-            
-            con = sqlite3.connect(dst)
-            crs = con.cursor()
 
-            # Create single main table
-            query = """
-            CREATE TABLE IF NOT EXISTS data (
-            id INTEGER PRIMARY KEY,
-            path TEXT UNIQUE,
-            x_pos FLOAT,
-            y_pos FLOAT)
-            """
-
-            # Apply action within query
-            crs.execute(query)
-            con.commit()
+            self.engine=create_engine(f"sqlite:///{dst}")
+            SQLModel.metadata.create_all(self.engine)
 
             return True     # signal everything executed correctly
         
@@ -175,10 +161,8 @@ class InterFacer():
         # Check file existence
         if (not os.path.exists(pth)) or (not os.path.isfile(pth)) or (not pth.endswith("db")):
             raise FileNotFoundError(f"No valid datebase found at {pth}!")
-        
-        self.db_con = sqlite3.connect(pth)
-        self.crs = self.db_con.cursor()
-        
+
+        self.engine = create_engine(f"sqlite:///{pth}")
 
     def _train_pca(self, dst_pth:str, embeds: np.array) -> IncrementalPCA:
         """Creates new instance of PCA-dim-reducer, trains and stores it as pkl-file.
@@ -279,19 +263,17 @@ class InterFacer():
             None
         """
         # Early return if no connection established
-        if (self.db_con is None) or (self.crs is None):
+        if not self.engine:
             print("No database connected. Insertion not possible!")
-            return  
-        
+            return
+
         if len(features) != 4:
             raise ValueError(f"Too many entries in argument <feature>. Expected 4, got {len(features)}")
-        
-        # Add to db
-        query = """INSERT INTO data (id, path, x_pos, y_pos) VALUES (?, ?, ?, ?)"""
-        self.crs.execute(query, features)
-        if auto_commit:
-            self.db_con.commit()
-    
+        with Session(self.engine) as session:
+            session.add(Data(*features))
+            if auto_commit:
+                session.commit()
+
 
     def _gen_embed(self, prompt:str) -> np.array:
         """Generates CLAP-Embedding from input string. 
@@ -350,11 +332,9 @@ class InterFacer():
 
     def __check_db_con(self) -> None:
         """Raises Connection Error if no databse is connected, instantiates cursor is non was set previously"""
-        # Check whether connections for finding and indicating matching samples are established 
-        if self.db_con is None:
+        # Check whether connections for finding and indicating matching samples are established
+        if self.engine is None:
             raise ConnectionError("Instatiated Object of class <InterFacer> has not been connected to a database!")
-        if self.crs is None:
-            self.crs = self.db_con.cursor()
         
 
     def _grab_paths_from_db(self, ids: np.ndarray|list) -> list[str]:
@@ -366,21 +346,17 @@ class InterFacer():
         Returns:
             paths (list[str]): Corresponding filepaths
         """
-        query = "SELECT path FROM data WHERE id=?"
-        matches = []
-        for i in ids.tolist():
-            print("ID: ", i)
-            self.crs.execute(query, (i,))  # pass as tuple with single element
-            matches.append(self.crs.fetchall()[0])
+        with Session(self.engine) as session:
+            matches = session.exec(select(Data.path).where(Data.id.in_(ids.tolist()))).all()
         return matches
     
 
     def _grab_all_pos_and_id_db(self) -> list[tuple[int, float, float]]:
         """Extracts x-pos and y-pos for each datapoint in connected database."""
         self.__check_db_con()   # Check con
-        query = """SELECT id, x_pos, y_pos FROM data;"""
-        self.crs.execute(query)
-        return self.crs.fetchall()
+        with Session(self.engine) as session:
+            resp = session.exec(select(Data.id, Data.x_pos, Data.y_pos)).all()
+        return resp
 
 
     def _grab_path_by_pos(self, pos:tuple) -> list:
@@ -392,12 +368,9 @@ class InterFacer():
             path (list): The respective path(s) to the audio sample(s) as stored in connected database.
         """
         self.__check_db_con()
-        query = """
-        SELECT path FROM data 
-        WHERE x_pos=? AND y_pos=?
-        """
-        self.crs.execute(query, pos)
-        return self.crs.fetchall() 
+        with Session(self.engine) as session:
+            resp = session.exec(select(Data.path).where(Data.x_pos==pos[0], Data.y_pos==pos[1])).all()
+        return resp
     
     
     def _grab_id_by_pos(self, pos:tuple) -> int:
