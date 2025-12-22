@@ -78,6 +78,7 @@ def create_faiss(sample_dir:str, dst_dir:str) -> Tuple[faiss.IndexIDMap, dict]:
     # reformat list of embeds to faiss-accepted form
     embeds = np.vstack([e.squeeze() for e in path_mapping["embedding"]]).astype(np.float32)
     faiss.normalize_L2(embeds)
+    path_mapping["embedding"] = embeds  # ensures to pass L2 normalized versions!
 
     
 
