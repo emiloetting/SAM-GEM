@@ -5,7 +5,7 @@ from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput
 
 
 
-SAMPLES_DIR = r"D:\Samples" # Parent dir of audio files
+SAMPLES_DIR = r"E:\Samples" # Parent dir of audio files
 ANNOTATIONS_JSON = "annotations.json"  
 
 
