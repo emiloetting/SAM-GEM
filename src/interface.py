@@ -391,10 +391,11 @@ class InterFacer():
         query = "SELECT embedding FROM data WHERE id=?"
         embeds = []
         for i in list(ids):
-            self.crs.execute(query, (i,))  # pass as tuple with single element
-            embeds.append(self.crs.fetchall()[0])
-        # TODO: FIX THIS SHIT USING FAAFO.PY! Probably need to store values blob within db, rip
-        return ast.literal_eval(str(embeds).replace(" ", ", "))[0] # get first value of return-tuple from ast
+            self.crs.execute(query, (i,))
+            embed_str = self.crs.fetchone()[0]   # collect strings individually to allow for np-loading from string (Only accepts value separated by given sep)
+            embed = np.fromstring(embed_str.strip("[]"), sep=" ")
+            embeds.append(embed)
+        return embeds
 
     
 
