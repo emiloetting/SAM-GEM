@@ -4,9 +4,9 @@ import faiss
 import numpy as np
 import seaborn as sns
 from random import sample
+import pandas as pd
 from src.interface import InterFacer
 from tqdm import tqdm
-# from matplotlib.lines import Line2D
 import matplotlib.pyplot as plt
 
 
@@ -105,20 +105,20 @@ with tqdm(leave=False, total=SAMPLE_SIZE, bar_format='{percentage:3.0f}%|{bar}|'
         audio_embed = np.array([audio_embeds[i]])
         annot_embed = np.array([annot_embeds[i]])
 
-        # # Get top 3 matches
-        _, I = index.search(annot_embed, 3)   
-        I = I.flatten() # make flat for easier access
+        # Get top 3 matches
+        _, I_audio = index.search(audio_embed, 3)   # audio 
+        _, I_annot = index.search(annot_embed, 3)   # annot
 
-        match_paths = [str(HARD_DRIVE_PREFIX+pth[0][1:]) for pth in interf._grab_paths_from_db(I)]    # get stored paths
-        match_embeds = UNTRAINED_MODEL.get_audio_embedding_from_filelist(match_paths)
-        faiss.normalize_L2(match_embeds)
+        I_audio = np.squeeze(I_audio).tolist()
+        I_annot = np.squeeze(I_annot).tolist()
+
+        match_embeds_audio = interf._grab_embeds_from_db(ids=I_audio)
+        match_embeds_annot = interf._grab_embeds_from_db(ids=I_annot)
 
         # Calc Cos-Sims:
-        cos_matches_annot.append([np.dot(annot_embed[0], match) for match in match_embeds])   # cos-sims betw. annot embed & top 3 matches
-        cos_matches_audio.append([np.dot(audio_embed[0], match) for match in match_embeds])   # cos-sims betw. audio embed & top 3 matches
-
+        cos_matches_audio.append([np.dot(audio_embed[0], match) for match in match_embeds_audio])   # cos-sims betw. audio embed & top 3 matches
+        cos_matches_annot.append([np.dot(annot_embed[0], match) for match in match_embeds_annot])   # cos-sims betw. annot embed & top 3 matches
         bar.update(1)
-
 
 
 # Plot matches to audio cosines
@@ -147,6 +147,8 @@ ax.scatter(theta_closed, top3_match_audio, linewidth=2, label="Top 3", c="red")
 fig = ax.get_figure()
 fig.savefig(fig_pth, dpi=300,bbox_inches="tight")
 
+
+
 # Plot matches to annot cosines
 fig_pth = os.path.join(EVAL_DATA_DIR, "untuned_cossims_annot_matches.png")
 fig = plt.figure(figsize=(14, 10))
@@ -171,3 +173,17 @@ ax.scatter(theta_closed, top2_match_annot, linewidth=2, label="Top 2", c="yellow
 ax.scatter(theta_closed, top3_match_annot, linewidth=2, label="Top 3", c="red")
 fig = ax.get_figure()
 fig.savefig(fig_pth, dpi=300,bbox_inches="tight")
+
+
+# Plot mean matches to annot cosines
+fig_pth = os.path.join(EVAL_DATA_DIR, "untuned_mean_cossims_annot_matches.png")
+data = pd.DataFrame({"best match": top1_match_annot[:-1],
+        "2nd best match": top2_match_annot[:-1],
+        "3rd best match": top3_match_annot[:-1]}
+)
+fig = plt.figure(figsize=(14, 10))
+ax = plt.gca()
+box = sns.boxplot(fill=True, gap=.1, data=data, ax=ax)
+fig = ax.get_figure()
+fig.savefig(fig_pth)
+plt.close(fig)
