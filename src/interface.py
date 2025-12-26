@@ -16,6 +16,7 @@ from sklearn.decomposition import IncrementalPCA
 from umap import UMAP
 from tqdm import tqdm
 from src.create_faiss_index import create_faiss
+import ast 
 from src.model import MODEL         # Core-model used for embedding gen in whole of project
 
 
@@ -33,7 +34,7 @@ class InterFacer():
         self.umap = None
 
         self.sample_dir = None # dir containing samples (in subdirs)
-        self.model = MODEL
+        # self.model = MODEL
         self.try_connections()
 
     
@@ -90,13 +91,14 @@ class InterFacer():
         
         # FILL DATABASE
         # Sanity check
-        assert len(feature_mappings["id"]) == len(feature_mappings["path"]) == len(two_dim_embeds), "Incoherent amount of ids, paths and 2d-corrdinates. Database will not be filled!"
+        assert len(feature_mappings["id"]) == len(feature_mappings["path"]) == len(two_dim_embeds) == len(feature_mappings["embedding"]), "Incoherent amount of ids, paths and 2d-corrdinates. Database will not be filled!"
         for i in range(len(two_dim_embeds)):
             insertion = []
             insertion.append(int(feature_mappings["id"][i]))
             insertion.append(str(feature_mappings["path"][i]))
             insertion.append(float(two_dim_embeds[i][0]))  # x-coordinate
             insertion.append(float(two_dim_embeds[i][1]))  # y-coordinate
+            insertion.append(str(feature_mappings["embedding"][i]))
 
             self._add2db(features=tuple(insertion),
                          auto_commit=False)
@@ -149,7 +151,8 @@ class InterFacer():
             id INTEGER PRIMARY KEY,
             path TEXT UNIQUE,
             x_pos FLOAT,
-            y_pos FLOAT)
+            y_pos FLOAT,
+            embedding TEXT)
             """
 
             # Apply action within query
@@ -283,11 +286,11 @@ class InterFacer():
             print("No database connected. Insertion not possible!")
             return  
         
-        if len(features) != 4:
-            raise ValueError(f"Too many entries in argument <feature>. Expected 4, got {len(features)}")
+        if len(features) != 5:
+            raise ValueError(f"Too many entries in argument <feature>. Expected 5, got {len(features)}")
         
         # Add to db
-        query = """INSERT INTO data (id, path, x_pos, y_pos) VALUES (?, ?, ?, ?)"""
+        query = """INSERT INTO data (id, path, x_pos, y_pos, embedding) VALUES (?, ?, ?, ?, ?)"""
         self.crs.execute(query, features)
         if auto_commit:
             self.db_con.commit()
@@ -361,7 +364,7 @@ class InterFacer():
         """Grabs filepaths to corresponding IDs from connected database
 
         Args:
-            ids (np.array): Array or list containing IDs to extract respective filepath to. 
+            ids (np.ndarray): Array or list containing IDs to extract respective filepath to. 
         
         Returns:
             paths (list[str]): Corresponding filepaths
@@ -369,10 +372,31 @@ class InterFacer():
         query = "SELECT path FROM data WHERE id=?"
         matches = []
         for i in ids.tolist():
-            print("ID: ", i)
+            # print("ID: ", i)
             self.crs.execute(query, (i,))  # pass as tuple with single element
             matches.append(self.crs.fetchall()[0])
         return matches
+
+
+    def _grab_embeds_from_db(self, ids: np.ndarray|list) -> list[np.ndarray]:
+        """Extracts embeddings to corresponding IDs from connected databse.
+        
+        Args:
+            ids (np.ndarray): Array or list containing IDs to extract respective embedding to. 
+        
+        Returns:
+            embeds (list[np.ndarray]): Corresponding embeddings.
+        """
+        self.__check_db_con()
+        query = "SELECT embedding FROM data WHERE id=?"
+        embeds = []
+        for i in list(ids):
+            self.crs.execute(query, (i,))
+            embed_str = self.crs.fetchone()[0]   # collect strings individually to allow for np-loading from string (Only accepts value separated by given sep)
+            embed = np.fromstring(embed_str.strip("[]"), sep=" ")
+            embeds.append(embed)
+        return embeds
+
     
 
     def _grab_all_pos_and_id_db(self) -> list[tuple[int, float, float]]:
