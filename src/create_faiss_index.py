@@ -1,13 +1,15 @@
-import numpy as np
-from pathlib import Path
-import tqdm
 import os
+import numpy as np
+import tqdm
 import faiss
-from typing import Tuple
 import ffmpeg
+import torch
+import librosa
+import soundfile as sf
+from pathlib import Path
+from typing import Tuple
 
-from src.model import MODEL
-
+from src.model import MODEL, TOKENIZER, PROCESSOR, FEAT_EXTR, TARGET_SR, TARGET_AUDIO_LEN_SEC
 
 cwd = os.getcwd()
 path_to_database = os.path.join(cwd, "DataBase")
@@ -27,21 +29,47 @@ def audio_embeddings_with_paths(folder_path):
 
     folder = Path(folder_path)
     
-    for audio_path in tqdm.tqdm(folder.rglob("*.*")):
+    for audio_path in tqdm.tqdm(folder.rglob("*.*"), total=len(list(folder.rglob("*.*")))):
         if audio_path.is_file():
             if audio_path.suffix.lower() == ".wav":
                 audio_file = audio_path
             else:
                 file_name = audio_path.with_suffix(".wav")
                 try:
-                    ffmpeg.input(str(audio_path)).output(file_name, ac=1, ar=16000).run()
+                    ffmpeg.input(str(audio_path)).output(file_name, ac=1, ar=48000).run()   # now 48kHz
                     audio_file = file_name
                 except Exception as e:
                     print(f"Error processing {audio_path}: {e}")
                     continue
 
             try:
-                audio_embedding = MODEL.get_audio_embedding_from_filelist([str(audio_file)])[0] # grab first element of list of single element
+                # Load
+                audio, sr = sf.read(audio_file, dtype="float32", always_2d=True)
+
+                # Mono conversion
+                audio = librosa.to_mono(audio.T)
+                audio_length_s = len(audio) / sr
+
+                if audio_length_s > TARGET_AUDIO_LEN_SEC:
+                    target_len_orig = int(TARGET_AUDIO_LEN_SEC * sr)
+                    n = len(audio)
+                    start = (n - target_len_orig) // 2
+                    audio = audio[start:start + target_len_orig]
+
+                if sr != TARGET_SR:
+                    audio = librosa.resample(audio, orig_sr=sr, target_sr=TARGET_SR)
+                    sr = TARGET_SR
+
+                # Padding automatically done by feature extractor tg
+                target_len = int(TARGET_SR * TARGET_AUDIO_LEN_SEC)
+                audio_embedding_dict = FEAT_EXTR(audio,
+                                                 sampling_rate=TARGET_SR, 
+                                                 return_tensors="pt")
+                
+                input_feats =  audio_embedding_dict["input_features"]
+                audio_embedding = MODEL.get_audio_features(input_feats)
+                audio_embedding = audio_embedding.detach().cpu().numpy().astype(np.float32)
+                
                 if audio_embedding is None:
                     print(f"None Error processing {audio_path}")
                 else: 
@@ -78,7 +106,7 @@ def create_faiss(sample_dir:str, dst_dir:str) -> Tuple[faiss.IndexIDMap, dict]:
     # reformat list of embeds to faiss-accepted form
     embeds = np.vstack([e.squeeze() for e in path_mapping["embedding"]]).astype(np.float32)
     faiss.normalize_L2(embeds)
-
+    path_mapping["embedding"] = embeds
     
 
     # Create IDs for faiss and json
