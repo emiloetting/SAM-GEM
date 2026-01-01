@@ -112,6 +112,9 @@ class ScatterWidget(QWidget):
 
         self._connect_interactions()
         self.plot.addItem(self.scatter)
+
+        self.last_clicked = None
+        self.last_clicked_style = (None, None)
         
 
     def _convert_from_hex(self) -> None:
@@ -202,8 +205,11 @@ class ScatterWidget(QWidget):
         
     def on_point_clicked(self, scatter, points):
         """Defines action on point click - currently only debug output."""
-        for p in points:
-            print(f"Clicked on point at: {p.pos()}")    # Debug output to see whether ther were multiple points reached
+        # debug: print all clicked positions
+        for pt in points:
+            print(f"Clicked on point at: {pt.pos()}")
+        # choose first point as the representative
+        p = points[0]
         self.selected_sample = self.gui_interfacer._grab_path_by_pos((p.pos().x(), p.pos().y()))
 
         # Set first point in points as the "real" one
@@ -211,9 +217,11 @@ class ScatterWidget(QWidget):
 
         # Restore pre-selection-style 
         if self.last_clicked is not None and self.last_clicked_style is not None:
-            brush, size = self.last_clicked_style
-            self.last_clicked.setBrush(brush)
-            self.last_clicked.setSize(size)
+            # only restore if the previous Spot is still attached to a plot
+            if getattr(self.last_clicked, "_plot", None) is not None:
+                brush, size = self.last_clicked_style
+                self.last_clicked.setBrush(brush)
+                self.last_clicked.setSize(size)
         
         # Set tuple containing new style settings
         self.last_clicked_style = (
