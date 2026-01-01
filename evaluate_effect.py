@@ -36,7 +36,8 @@ HARD_DRIVE_PREFIX = "E"
 # Aktuell: 1499 Samples
 # Wir nehmen: 300 Random (Großer Teil wo viele ähnlich sind)
 SAMPLE_SIZE = 100
-UNTRAINED_FAISS_PTH = "data/audio.faiss"
+UNTRAINED_FAISS_PTH = "data/audio_untuned.faiss"
+FINETUNED_FAISS_PTH = "data/audio.faiss"
 
 
 # Load file with annots
