@@ -16,9 +16,7 @@ from sklearn.decomposition import IncrementalPCA
 from umap import UMAP
 from tqdm import tqdm
 from src.create_faiss_index import create_faiss
-import ast 
-from src.model import MODEL         # Core-model used for embedding gen in whole of project
-
+from src.model import MODEL, PROCESSOR, TOKENIZER        # Core-model used for embedding gen in whole of project
 
 
 
@@ -34,7 +32,9 @@ class InterFacer():
         self.umap = None
 
         self.sample_dir = None # dir containing samples (in subdirs)
-        # self.model = MODEL
+        self.model = MODEL
+        self.processor = PROCESSOR
+        self.tokenizer = TOKENIZER
         self.try_connections()
 
     
@@ -77,16 +77,16 @@ class InterFacer():
         # Train PCA object and reduce embeds
         pca_dst_pth = os.path.join(backend_data_dir, "ipca.pkl")
         print("Amount embeds: ",len(feature_mappings["embedding"]))
-        self.ipca = self._train_pca(dst_pth=pca_dst_pth,
-                                       embeds=feature_mappings["embedding"])
-        pca_embeds = self._reduce_to_20(embeds=feature_mappings["embedding"],
-                                        ipca=self.ipca)
+        # self.ipca = self._train_pca(dst_pth=pca_dst_pth,
+        #                                embeds=feature_mappings["embedding"])
+        # pca_embeds = self._reduce_to_20(embeds=feature_mappings["embedding"],
+        #                                 ipca=self.ipca)
         
         # Train UMAP object and reduce embeddings pre-reduced by pca
         umap_dst_pth = os.path.join(backend_data_dir, "umap.pkl")
         self.umap = self._train_umap(dst_pth=umap_dst_pth,
-                                        embeds=pca_embeds)
-        two_dim_embeds = self._reduce_to_2(embeds=pca_embeds, 
+                                        embeds=feature_mappings["embedding"])
+        two_dim_embeds = self._reduce_to_2(embeds=feature_mappings["embedding"], 
                                            umap=self.umap)
         
         # FILL DATABASE
@@ -306,7 +306,17 @@ class InterFacer():
             embed (np.array): Computed embedding.
         """
         assert type(prompt) == str, f"Invalid input. Got <{type(prompt)}>, expected <str>!"
-        return faiss.normalize_L2(self.model.get_text_embedding([prompt.strip()]))     # Normalize same way as during index-build
+        base_embed = self.tokenizer([prompt.strip()],
+                                    padding=True,
+                                    truncation=True,
+                                    return_tensors="pt")
+        embed_wrong_dims = self.model.get_text_features(base_embed["input_ids"], base_embed["attention_mask"])     # embed is torch.Tensor
+        embed_better = embed_wrong_dims.numpy().squeeze()
+
+        if embed_better.ndim == 1:
+            embed = embed_better[np.newaxis, :]                        # make it (1, d) for FAISS
+        faiss.normalize_L2(embed)
+        return embed    
     
 
     def find_top_k_matches(self, prompt:str, k:int) -> list[tuple[int,str]]:
@@ -329,8 +339,8 @@ class InterFacer():
             raise ConnectionError("Instatiated Object of class <InterFacer> has not been connected to any instance of FAISS-Index!")
         
         # Compute embedding and normalize
-        input_embed = self.model.get_text_embedding([prompt.strip()])
-        faiss.normalize_L2(input_embed)     # Normalize same way index was built
+        input_embed = self._gen_embed(prompt)
+        print("Input Embed: ", input_embed)
         print("Shape of input_embed: ", input_embed.shape)
 
         # Get indices of best matches
