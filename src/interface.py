@@ -73,14 +73,6 @@ class InterFacer():
         # Connect to newly created db
         db_pth = os.path.join(backend_data_dir, db_name)
         self._connect_db(db_pth)
-
-        # Train PCA object and reduce embeds
-        pca_dst_pth = os.path.join(backend_data_dir, "ipca.pkl")
-        print("Amount embeds: ",len(feature_mappings["embedding"]))
-        # self.ipca = self._train_pca(dst_pth=pca_dst_pth,
-        #                                embeds=feature_mappings["embedding"])
-        # pca_embeds = self._reduce_to_20(embeds=feature_mappings["embedding"],
-        #                                 ipca=self.ipca)
         
         # Train UMAP object and reduce embeddings pre-reduced by pca
         umap_dst_pth = os.path.join(backend_data_dir, "umap.pkl")
@@ -181,50 +173,6 @@ class InterFacer():
         
         self.db_con = sqlite3.connect(pth)
         self.crs = self.db_con.cursor()
-        
-
-    def _train_pca(self, dst_pth:str, embeds: np.array) -> IncrementalPCA:
-        """Creates new instance of PCA-dim-reducer, trains and stores it as pkl-file.
-        
-        Args:
-            dst_pth (str): Where to to store PCA-object. Filetype must be pkl!
-            embeds (np.array): Numpy-Array containg 512-dimensional CLAP-embeddings.
-        
-        Returns:
-            reducer (IncrementalPCA): Trained reducer to bring embeds down to 20 dims.
-        """
-        if not dst_pth.endswith("pkl"):
-            raise ValueError("Argument <dst_pth> must be filepath leading to .pkl-file!")
-
-        # Use incremental-PCA for progress-display
-        ipca = IncrementalPCA(n_components=20)
-        
-        for i in tqdm(embeds, 
-                      desc="Training PCA", 
-                      total=len(embeds), 
-                      colour="green", 
-                      leave=False, 
-                      bar_format='[{elapsed}<{remaining}] {n_fmt}/{total_fmt} | {l_bar}{bar} {rate_fmt}{postfix}'):
-            ipca.partial_fit(embeds)
-
-        # Store as .pkl
-        with open(os.path.join(self.backend_data_dir,"ipca.pkl"), "wb") as f:
-            pickle.dump(ipca, f)
-        
-        return ipca
-    
-
-    def _reduce_to_20(self, embeds:np.array, ipca:IncrementalPCA) -> np.array:
-        """Reduces 512-dim embeddings to 20 dims using pre-trained ipca-object.
-        
-        Args:
-            embeds (np.array): Array containg 512-dimensional CLAP embeddings.
-            ipca (IncrementalPCA): Pre-trained PCA object used to reduce dims of given embeddings.
-            
-        Returns:
-            reduced (np.array): Embeddings reduced to 20 dims.
-        """
-        return ipca.transform(embeds)
 
     
     def _train_umap(self, dst_pth:str, embeds:np.array) -> UMAP:
@@ -340,13 +288,11 @@ class InterFacer():
         
         # Compute embedding and normalize
         input_embed = self._gen_embed(prompt)
-        print("Input Embed: ", input_embed)
-        print("Shape of input_embed: ", input_embed.shape)
 
         # Get indices of best matches
         _, indices = self.index.search(input_embed, k)
         indices = indices.flatten()     # reformat for grabbing from db
-        print("Found matching IDs: ", indices)  
+ 
         # Get respective filepaths
         paths = self._grab_paths_from_db(ids=indices)
 
@@ -382,7 +328,6 @@ class InterFacer():
         query = "SELECT path FROM data WHERE id=?"
         matches = []
         for i in ids.tolist():
-            # print("ID: ", i)
             self.crs.execute(query, (i,))  # pass as tuple with single element
             matches.append(self.crs.fetchall()[0])
         return matches
