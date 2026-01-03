@@ -3,13 +3,12 @@ import numpy as np
 import tqdm
 import faiss
 import ffmpeg
-import torch
 import librosa
 import soundfile as sf
 from pathlib import Path
 from typing import Tuple
 
-from src.model import MODEL, TOKENIZER, PROCESSOR, FEAT_EXTR, TARGET_SR, TARGET_AUDIO_LEN_SEC
+from src.model import MODEL, FEAT_EXTR, TARGET_SR, TARGET_AUDIO_LEN_SEC
 
 cwd = os.getcwd()
 path_to_database = os.path.join(cwd, "DataBase")
@@ -61,7 +60,6 @@ def audio_embeddings_with_paths(folder_path):
                     sr = TARGET_SR
 
                 # Padding automatically done by feature extractor tg
-                target_len = int(TARGET_SR * TARGET_AUDIO_LEN_SEC)
                 audio_embedding_dict = FEAT_EXTR(audio,
                                                  sampling_rate=TARGET_SR, 
                                                  return_tensors="pt")
