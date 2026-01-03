@@ -1,11 +1,11 @@
-import sys
 import os
+import sys
 import numpy as np  
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, 
                                QVBoxLayout, QHBoxLayout, QPushButton, 
                                QLabel, QLineEdit, QSizePolicy,
                                QFrame, QMenuBar)
-from PySide6.QtCore import Qt, QUrl, QLoggingCategory
+from PySide6.QtCore import Qt, QLoggingCategory
 from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput
 from src.plotting import ScatterWidget, DraggableWaveform
 from src.interface import InterFacer

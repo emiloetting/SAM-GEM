@@ -1,10 +1,27 @@
 # Script to instantiate singular model used for all gen-embedding purposes of whole project
-
-
-import torch
+import os
+from transformers import AutoModel
+from peft import PeftModel, PeftConfig
+from transformers import ClapProcessor
 from laion_clap import CLAP_Module
 
+# Check whether config is available
+cwd = os.getcwd()
+model_dir = os.path.join(cwd, "data", "model")
+config_pth = os.path.join(model_dir, "adapter_config.json")
+if not os.path.exists(config_pth):
+    raise FileNotFoundError(f"No file found at: {config_pth}")
 
-DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
-MODEL = CLAP_Module(enable_fusion=False, device=DEVICE)
-MODEL.load_ckpt(verbose=False)
+# Load model
+config = PeftConfig.from_pretrained(model_dir)
+model = AutoModel.from_pretrained(config.base_model_name_or_path)
+
+MODEL = PeftModel.from_pretrained(model, model_dir)
+UNTRAINED_MODEL = CLAP_Module(enable_fusion=False)
+UNTRAINED_MODEL.load_ckpt(verbose=False)
+PROCESSOR = ClapProcessor.from_pretrained("laion/clap-htsat-unfused")
+TOKENIZER = PROCESSOR.tokenizer
+FEAT_EXTR = PROCESSOR.feature_extractor
+TARGET_SR = 48000
+TARGET_AUDIO_LEN_SEC = 5   # FML
+
