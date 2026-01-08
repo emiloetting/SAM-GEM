@@ -17,8 +17,7 @@ from PySide6.QtWidgets import QWidget, QFileDialog
 from umap import UMAP
 from src.create_faiss_index import create_faiss
 from src.model import (MODEL, PROCESSOR, TOKENIZER, 
-                       UNTRAINED_MODEL, TARGET_AUDIO_LEN_SEC, TARGET_SR,
-                       FEAT_EXTR)        # Core-model used for embedding gen in whole of project
+                       TARGET_AUDIO_LEN_SEC, TARGET_SR, FEAT_EXTR)        # Core-model used for embedding gen in whole of project
 
 
 
@@ -32,12 +31,10 @@ class InterFacer():
         self.faiss = None
         self.ipca = None
         self.umap = None
-
         self.sample_dir = None # dir containing samples (in subdirs)
         self.model = MODEL
         self.processor = PROCESSOR
         self.tokenizer = TOKENIZER
-        self.untrained_model = UNTRAINED_MODEL
         self.feat_extractor = FEAT_EXTR
         self.try_connections()
 

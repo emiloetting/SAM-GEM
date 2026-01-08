@@ -152,7 +152,7 @@ class GUI(QMainWindow):
 
         # ============================================= BOTTOM ==========================================
         self.input_line = QLineEdit()
-        self.input_line.setStyleSheet("font-size: 11pt;")
+        self.input_line.setStyleSheet("font-size: 10pt;")
         self.input_line.setAlignment(Qt.AlignCenter) 
         self.input_line.setPlaceholderText("")                    # empty to fix Qt bug 
         self.input_line.setPlaceholderText("DESCRIBE YOUR DESIRED SOUND HERE..")  # replace with prompt that is centered

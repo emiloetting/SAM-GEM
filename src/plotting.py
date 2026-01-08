@@ -12,7 +12,7 @@ from PySide6.QtCore import (QPoint, Qt, QUrl,
 
 
 NORMAL_SIZE = .05
-MATCH_SIZE = 0.15
+MATCH_SIZE = 0.3
 HARD_DRIVE_PREFIX = "E"
 class ScatterWidget(QWidget):
     """Class to create scatterplot of audio features via PyQtGraph."""
@@ -20,8 +20,8 @@ class ScatterWidget(QWidget):
                  gui_interfacer: InterFacer,
                  gui_parent,    # TypeHinting not easily possible due to cross-imports
                  bg_color: str = '#FFFFFF', 
-                 match_color: str = '#7aabfa', 
-                 basic_color: str = '#fa3737',
+                 match_color: str = "#3a67b0", 
+                 basic_color: str = "#ea431a",
                  selected_color: str = "#FAD400") -> None: 
         
         # Init parent object
@@ -34,7 +34,8 @@ class ScatterWidget(QWidget):
             self.data = {
                 "pos": [],
                 "color" : [],
-                "size" : []
+                "size" : [],
+                "shape": []
             }
         else:
             self.data = init_data
@@ -46,6 +47,8 @@ class ScatterWidget(QWidget):
         self.selected_color = selected_color
         self.normal_size = NORMAL_SIZE
         self.match_size = MATCH_SIZE
+        self.normal_shape = "s"
+        self.match_shape = "d"
 
         # Create pyQtGraph
         self.plot = pg.PlotWidget(background=bg_color)
@@ -84,11 +87,11 @@ class ScatterWidget(QWidget):
             data = self.data    # Safety mechanism
 
         # Check passed data
-        assert all(key in data for key in ['pos', 'size', 'color']),                     "Data dictionary must contain 'pos', 'size', and 'color' keys."
-        assert data['pos'].shape[1] == 2,                                                "Position data must be 2-dimensional." 
-        assert len(data['pos']) == len(data['size']) == len(data['color']),              "Length of 'pos', 'size', and 'color' must be the same."
-        assert all(isinstance(c, str) and (c.startswith("#")) for c in data['color']),   "Colors are to be passed as strings containing HEX-encoded color."
-        assert len(data['pos']) > 0,                                                     "Data arrays must not be empty."
+        assert all(key in data for key in ['pos', 'size', 'color', 'shape']),                     "Data dictionary must contain 'pos', 'size', and 'color' keys."
+        assert data['pos'].shape[1] == 2,                                                         "Position data must be 2-dimensional." 
+        assert len(data['pos']) == len(data['size']) == len(data['color'] == len(data['shape'])), "Length of 'pos', 'size', and 'color' must be the same."
+        assert all(isinstance(c, str) and (c.startswith("#")) for c in data['color']),            "Colors are to be passed as strings containing HEX-encoded color."
+        assert len(data['pos']) > 0,                                                              "Data arrays must not be empty."
         
         data['color'] = [QColor(clr) for clr in data['color']]  # Convert list of Hex colors to VisPy recognizable RGBA format
         self.data = data    # load into scatter
@@ -107,7 +110,8 @@ class ScatterWidget(QWidget):
             size=self.data['size'],
             brush=self.data['color'],
             pen=pg.mkPen('w', width=0.1),
-            pxMode=False
+            pxMode=False,
+            symbol=self.data['shape']
         )
 
         self._connect_interactions()
@@ -157,6 +161,7 @@ class ScatterWidget(QWidget):
         self.data['size'] = np.array(self.data['size'])[sort_idx]
         self.data['color'] = np.array(self.data['color'])[sort_idx]
         self.data['pos'] = np.array(self.data['pos'])[sort_idx]
+        self.data['shape'] = np.array(self.data['shape'])[sort_idx]
 
 
     def update_plot(self, match_ids:list[int], data:dict) -> None:
@@ -164,8 +169,7 @@ class ScatterWidget(QWidget):
         
         Args:
             ids (list[int]): List of IDs of best matches.
-            data (dict): Dictionary containing information on position and IDs
-        
+            data (dict): Dictionary containing information on position , size,  color and shape        
         Returns:
             None
         """
@@ -185,11 +189,14 @@ class ScatterWidget(QWidget):
         sizes[real_matching_idcs] = self.match_size
         colors = np.array([self.normal_color]*len(data_ids))
         colors[real_matching_idcs] = self.match_color
+        shapes = np.array([self.normal_shape]*len(data_ids))
+        shapes[real_matching_idcs] = self.match_shape
 
         self.new_data = {
             'pos': data_pos,
             'size': sizes,
-            'color': colors     
+            'color': colors,
+            'shape': shapes     
         }
 
         self.load_data(data=self.new_data)
