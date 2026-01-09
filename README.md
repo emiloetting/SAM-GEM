@@ -57,7 +57,7 @@ If you want to train, ensure to install all packages!
 <br>
 
 ## 3️⃣ **Execute the `app.py`**  
-This will open the GUI and enable access all functionalities.  
+This will open the GUI and enable access to all functionalities.  
 
 <br>
 
@@ -83,7 +83,7 @@ This will include embedding-creation for all your samples and dimensionality-red
 
 # Outlook 
 Of course, SAM-GEM is not yet finished.  
-Currently we are working on:  
+Currently, we are working on:  
 - **Quickly Add New Samples**
 We are currently working on a feature to quickly add new samples to the existing database, so that adding a kickdrum to your library does not lead to recalculating your whole library but only the added sounds.  
 This feature will be available within the `menu` found within the GUI.  
