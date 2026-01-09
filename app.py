@@ -1,11 +1,12 @@
 import os
 import sys
-import numpy as np  
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, 
                                QVBoxLayout, QHBoxLayout, QPushButton, 
                                QLabel, QLineEdit, QSizePolicy,
-                               QFrame, QMenuBar)
+                               QFrame, QMenuBar, QGridLayout,
+                               QGraphicsDropShadowEffect)
 from PySide6.QtCore import Qt, QLoggingCategory
+from PySide6.QtGui import QColor
 from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput
 from src.plotting import ScatterWidget, DraggableWaveform
 from src.interface import InterFacer
@@ -55,7 +56,7 @@ class GUI(QMainWindow):
         self.setCentralWidget(central)
 
         root = QVBoxLayout(central)      # main layout is vertical
-        top = QHBoxLayout()              # top part of vertical layout is arranges widgets horizontally
+        top = QGridLayout()              # top part of vertical layout should overlay stuff over plot
         bottom = QVBoxLayout()           # so does bottom part
 
         # ========================================== TOP MENU ========================================
@@ -86,9 +87,9 @@ class GUI(QMainWindow):
         )
 
         self.menu.addAction("Initialize Backend")
-        self.menu.addAction("Set Data Directory")
-        self.menu.addAction("Rescan Data Directory & Update DataBase")
-        self.menu.addAction("Recluster Data")
+        self.menu.addAction("Available soon: Set Data Directory")
+        self.menu.addAction("Available soon: Rescan Data Directory & Update DataBase")
+        self.menu.addAction("Available soon: Recluster Data")
         self.menu.addAction("Exit")
 
         # Implement menu actions
@@ -100,38 +101,34 @@ class GUI(QMainWindow):
         # ============================================= TOP ==========================================
         # ===LEFT COL=================================================================================
         # WAVEFORMS OF TOP 3 MATCHES
-        self.left = QVBoxLayout()
-        self.left.setSpacing(20)
-        self.left.stretch(1)
-        self.left.setContentsMargins(10, 10, 10, 10)
+        self.left_container = QWidget(central)
+        self.left_container.setAttribute(Qt.WA_TranslucentBackground)
+        self.left = QVBoxLayout(self.left_container)
+        self.left.setSpacing(self.height() * 0.05)    # Distance between child-widgets
+        self.left.setContentsMargins(16, 16, 16, 16)
 
-
+        # Use stretches to put into vertical center
+        self.left.addStretch(1) 
         self.first_frame  = self.make_match_frame("FIRST MATCH", self.first_match_pth)
         self.second_frame = self.make_match_frame("SECOND MATCH", self.second_match_pth)
         self.third_frame  = self.make_match_frame("THIRD MATCH", self.third_match_pth)
+        
 
         # Add space at start
-        self.left.addStretch(1)
-
         self.left.addWidget(self.first_frame, stretch=1)
         self.left.addWidget(self.second_frame, stretch=1)
         self.left.addWidget(self.third_frame, stretch=1)
+        self.left.addStretch(3)     # bottom stretch for vertical center alignemnt
 
-        # Add space at bottom
-        self.left.addStretch(3)
+
+        self.left_container.setParent(central)
+
 
 
         # ===RIGHT COL=================================================================================
         self.right = QVBoxLayout()
         self.right.setSpacing(20)
         self.right.setContentsMargins(10, 10, 10, 10)
-        demo_data = {           # TODO: Remove
-            'pos': np.random.normal(size=(1000, 2)),
-            'size': np.concatenate(([1]*497, [3]*3, [1]*500))*.02,
-            'color':        
-                                [BASIC_COLOR]*497 +          # convert list of Hex colors to VisPy recognizable RGBA format
-                                [MATCH_COLOR]*3 + 
-                                [BASIC_COLOR]*500}
         self.scatter = ScatterWidget(
                                 init_data=None,
                                 gui_interfacer=self.interfacer,
@@ -142,29 +139,25 @@ class GUI(QMainWindow):
         
         self.scatter.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.right.addWidget(self.scatter, stretch=8)
-        self.currently_selected = self.make_match_frame("CURRENTLY SELECTED: ", self.scatter.selected_sample) 
-        self.right.addWidget(self.currently_selected, stretch=1)
-        self.right.addStretch(1)
 
-        top.addLayout(self.left, stretch=3)
-        top.addLayout(self.right, stretch=5)
+        top.addItem(self.right, 0, 0)
 
 
         # ============================================= BOTTOM ==========================================
+        self.currently_selected = self.make_match_frame("CURRENTLY SELECTED: ", self.scatter.selected_sample,background=False) 
+
         self.input_line = QLineEdit()
         self.input_line.setStyleSheet("font-size: 10pt;")
         self.input_line.setAlignment(Qt.AlignCenter) 
         self.input_line.setPlaceholderText("")                    # empty to fix Qt bug 
         self.input_line.setPlaceholderText("DESCRIBE YOUR DESIRED SOUND HERE..")  # replace with prompt that is centered
-        self.input_line.setMinimumHeight(40)
-        self.input_line.setMaximumWidth(1000)
-        self.input_line.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.input_line.setMinimumHeight(self.height()*0.035)
+        self.input_line.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
         self.find_sound_btn = QPushButton("Find Your Sound")
         self.find_sound_btn.clicked.connect(self.evaluate)
-        self.find_sound_btn.setMaximumHeight(30)
-        self.find_sound_btn.setMaximumWidth(1000)
-        self.find_sound_btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.input_line.setMinimumHeight(self.height()*0.05)
+        self.find_sound_btn.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.find_sound_btn.setStyleSheet("""
             QPushButton {
                 background-color: #4786eb;
@@ -192,52 +185,88 @@ class GUI(QMainWindow):
         self.button_row.addWidget(self.find_sound_btn, stretch=7)
         self.button_row.addStretch(1)
 
+        # Selected Wave
+        self.selected_sample_row = QHBoxLayout()
+        self.selected_sample_row.addStretch(1)
+        self.selected_sample_row.addWidget(self.currently_selected, stretch=7)
+        self.selected_sample_row.addStretch(1)
+
+        bottom.addLayout(self.selected_sample_row)
         bottom.addLayout(self.input_row)
         bottom.addLayout(self.button_row)
-        bottom.addStretch(1)
+        bottom.addStretch(5)
 
         # ADD EVERYTHING TO ROOT
         root.addLayout(top, stretch=17)
         root.addLayout(bottom, stretch=3)
+        root.addStretch(2)
+
+        # Display Plot initially
+        self.evaluate()
 
 
-    def make_match_frame(self, text, audio_pth:str) -> QWidget:
+        # Raise left col with wavs into foreground
+        self.left_container.raise_()
+        total_width  = self.width()
+        total_height = self.height()
+        left_width   = int(total_width * 0.25)
+        self.left_container.setGeometry(0, 0, left_width, total_height)
+        
+
+
+    def make_match_frame(self, text, audio_pth:str, background:bool=True) -> QWidget:
         """Creates a frame with label and draggable waveform inside.
 
         Args:
             text (str): Label text.
             audio_pth (str): Path to audio file to display.
+            background (bool): Whether or not to make small box around plot.
         Returns:
             QWidget: Container widget with label and frame.
         """
         container = QWidget()
+        container.setAttribute(Qt.WA_TranslucentBackground)
         container_layout = QVBoxLayout(container)
         container_layout.setSpacing(4)
         container_layout.setContentsMargins(0, 0, 0, 0)
 
         label = QLabel(text)
         label.setAlignment(Qt.AlignHCenter)
+        label.setAttribute(Qt.WA_TranslucentBackground)
 
         frame = QFrame()
-        frame.setStyleSheet("""QFrame {
-                            border: .5px solid #555;
-                            border-radius: 4px;
-                            border-color: #444444;
-                            background-color: #212121;
-                            padding: 0px;}""")
-        frame.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        frame.setMinimumHeight(80)       
+        if background:
+            frame.setStyleSheet("""
+                                    background-color: rgba(255, 255, 255, 0.01); 
+                                    border: 2px solid rgba(255, 255, 255, 0.02);
+                                    border-radius: 12px;
+                                        """)
+            glow = QGraphicsDropShadowEffect()
+            glow.setBlurRadius(20)
+            glow.setOffset(0, 0)
+            glow.setColor(QColor(255, 255, 255, 150))
+            frame.setGraphicsEffect(glow)
+        frame.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)    
+
+        if audio_pth:
+            path = QLabel(os.path.split(audio_pth))
+            path.setAttribute(Qt.WA_TranslucentBackground)
+            path.setAlignment(Qt.AlignHCenter)
          
 
         frame_layout = QVBoxLayout(frame)
         frame_layout.setContentsMargins(8, 8, 8, 8)
         frame_layout.addStretch()
         waveform = DraggableWaveform(audio_pth, parent_gui=self)
+        waveform.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         container.waveform = waveform
         frame_layout.addWidget(container.waveform)
         frame_layout.addStretch()
         container_layout.addWidget(label)
         container_layout.addWidget(frame, 1) 
+
+        if audio_pth:
+            container_layout.addWidget(path)
 
         container.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
@@ -248,15 +277,19 @@ class GUI(QMainWindow):
     def evaluate(self) -> None:
         """Executes search for described sample."""
         # Take user input
-        user_input = self.input_line.text() 
+        user_input = self.input_line.text().lower() 
         print("Search button clicked! Input: ", user_input) # debug
 
-        # Select IDs of top 3 matches
-        match1, match2, match3 = self.interfacer.find_top_k_matches(user_input, k=K_MATCHES)
-        match_ids = [match1[0], 
-                     match2[0], 
-                     match3[0]]
+        if user_input is None or user_input == "":
+            match_ids = None
         
+        else:
+            # Select IDs of top 3 matches
+            match1, match2, match3 = self.interfacer.find_top_k_matches(user_input, k=K_MATCHES)
+            match_ids = [match1[0], 
+                        match2[0], 
+                        match3[0]]
+            
         # Select all IDs and positions in connected DB
         data = self.interfacer._grab_all_pos_and_id_db()
 
@@ -268,6 +301,25 @@ class GUI(QMainWindow):
 
         # Update scatter using newly defined data-dict
         self.scatter.update_plot(match_ids=match_ids, data=self.data_dict)
+        self.left_container.raise_()    # put wavs into foreground
+
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+
+        # Get window width
+        total_width = self.width()  
+        total_height = self.height()
+
+        # Grant waveforms 25% of window
+        left_width = int(total_width * 0.25)
+
+        # Safety: set only if according container is insatntiated (should be)
+        if hasattr(self, "left_container") and self.left_container is not None:
+            self.left_container.setGeometry(0, 0, left_width, total_height)
+        
+        self.left_container.raise_()    # put to foreground
+
 
 
 

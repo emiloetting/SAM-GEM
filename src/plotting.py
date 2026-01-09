@@ -11,8 +11,8 @@ from PySide6.QtCore import (QPoint, Qt, QUrl,
                             QMimeData)
 
 
-NORMAL_SIZE = .05
-MATCH_SIZE = 0.3
+NORMAL_SIZE = .035
+MATCH_SIZE = 0.15
 HARD_DRIVE_PREFIX = "E"
 class ScatterWidget(QWidget):
     """Class to create scatterplot of audio features via PyQtGraph."""
@@ -146,11 +146,6 @@ class ScatterWidget(QWidget):
 
     def _set_initial_range(self):
         """Set initial view range to fit all points."""
-        # pos = np.asarray(self.data['pos'])
-        # x_min, x_max = pos[:, 0].min(), pos[:, 0].max()
-        # y_min, y_max = pos[:, 1].min(), pos[:, 1].max()
-        # abs_min = min(x_min, y_min)
-        # abs_max = max(x_max, y_max)
         self.scatter.getViewBox().setAspectLocked(True) 
         self.plot.enableAutoRange()
 
@@ -169,16 +164,20 @@ class ScatterWidget(QWidget):
         
         Args:
             ids (list[int]): List of IDs of best matches.
-            data (dict): Dictionary containing information on position , size,  color and shape        
+            data (dict): Dictionary containing information on position and ids.      
         Returns:
             None
         """
         #TODO: set new data dict into self.data based on passed IDs 
         # Validate match-IDs
         assert len(data["pos"]) == len(data["ids"]), f"Unequal amount of IDs and positional information provided!"
+        if match_ids is None:
+            return self.scatter_only(data=data)  # only display scatter
+            
         for id in match_ids:
             if not id in data["ids"]:
                 raise ValueError("Unknown ID passed as match!")
+        
             
         match_ids = np.array(match_ids)
         data_pos = np.array(data["pos"])
@@ -204,10 +203,36 @@ class ScatterWidget(QWidget):
         paths = self.gui_interfacer._grab_paths_from_db(ids=match_ids)
         self.gui_parent.first_frame.waveform._update(new_path=paths[0][0], 
                                                      color=self.match_color)
+
         self.gui_parent.second_frame.waveform._update(new_path=paths[1][0],
                                                       color=self.match_color)
+
         self.gui_parent.third_frame.waveform._update(new_path=paths[2][0],
                                                       color=self.match_color)
+
+        self.gui_parent.left_container.raise_() # put them on top of scatter
+    
+
+    def scatter_only(self, data:dict) -> None:
+        """Method to only set scatterplot, no updates of waveforms.
+        
+        Args:
+            data (dict): Dictionary containing information on (at least) position
+            
+        Returns:
+            None
+        """
+        data_pos = np.array(data["pos"])
+        sizes = np.array([self.normal_size]*len(data_pos))
+        colors = np.array([self.normal_color]*len(data_pos))
+        shapes = np.array([self.normal_shape]*len(data_pos))
+        self.new_data = {
+            'pos': data_pos,
+            'size': sizes,
+            'color': colors,
+            'shape': shapes     
+        }
+        self.load_data(data=self.new_data)
         
         
     def on_point_clicked(self, scatter, points):
@@ -249,6 +274,7 @@ class ScatterWidget(QWidget):
         self.gui_parent.currently_selected.waveform._update(new_path=self.selected_sample[idx][0], 
                                                             color=self.selected_color) 
 
+
 class DraggableWaveform(QWidget):
     """Widget displaying drag'n'droppable WAV-Form."""
     def __init__(self, audio_pth: str, parent_gui, wav_color: str = '#fa3737') -> None:
@@ -268,11 +294,14 @@ class DraggableWaveform(QWidget):
         # Create Widget to plot waveform
         #TODO:Implement feature to play sound on click
         self.plot_widget = DraggablePlotWidget(self)
-        self.plot_widget.setBackground(None)
         self.plot_widget.hideAxis("bottom")
         self.plot_widget.hideAxis("left")
         self.plot_widget.setMouseEnabled(x=False, y=False)
-        self.plot_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.plot_widget.setStyleSheet("""
+                                        background-color: rgba(60, 80, 120, 20); 
+                                        border-radius: 25px;
+                                          """)
+        self.plot_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         layout.addWidget(self.plot_widget)  # add to layout
         self.show_wav()  # draw waveform
 
@@ -298,6 +327,11 @@ class DraggableWaveform(QWidget):
 
         pen = pg.mkPen(color=color, width=1.5)   # define line settings
         self.plot_widget.plot(t_steps, data, pen=pen, clear=True)     # update plot
+        self.plot_widget.setAttribute(Qt.WA_NoSystemBackground)
+        self.plot_widget.setStyleSheet("""
+                                        background-color: rgba(60, 80, 120, 20); 
+                                        border-radius: 25px;
+                                          """)
 
         max_amp = np.max(np.abs(data))
         self.plot_widget.setYRange(-max_amp, max_amp, padding=0)    # Set range to center waveform 
@@ -350,8 +384,16 @@ class DraggableWaveform(QWidget):
 class DraggablePlotWidget(pg.PlotWidget):
     """Subclass of PlotWidget to allow mouse events on parent DraggableWaveform."""
     def __init__(self, parent):
-        super().__init__(parent)
+        super().__init__(parent, background=None)
         self.parent = parent
+
+        # Create transpanret look
+        self.setAttribute(Qt.WA_NoSystemBackground, True)
+        self.setFrameStyle(0)
+
+        # Turn of viewbox bg
+        vb = self.getPlotItem().getViewBox()
+        vb.setBackgroundColor(QColor(0, 0, 0, 0))
 
     def mousePressEvent(self, event) -> None:
         self.parent.mousePressEvent(event)
