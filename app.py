@@ -202,7 +202,8 @@ class GUI(QMainWindow):
         root.addStretch(2)
 
         # Display Plot initially
-        self.evaluate()
+        if not self.interfacer.db_con is None:
+            self.evaluate()
 
 
         # Raise left col with wavs into foreground

@@ -354,7 +354,7 @@ class InterFacer():
         """Raises Connection Error if no databse is connected, instantiates cursor is non was set previously"""
         # Check whether connections for finding and indicating matching samples are established 
         if self.db_con is None:
-            raise ConnectionError("Instatiated Object of class <InterFacer> has not been connected to a database!")
+            raise Warning("Instatiated Object of class <InterFacer> has not been connected to a database!")
         if self.crs is None:
             self.crs = self.db_con.cursor()
         
