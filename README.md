@@ -1,14 +1,17 @@
-<img width="1280" height="670" alt="Kopie von SAM-GEM Logo-Photoroom - Kopie" src="https://github.com/user-attachments/assets/2debe121-8f15-48d1-a21f-c8defeeb35b5" />
+<img width="1280" height="498" alt="Logo_new_short" src="https://github.com/user-attachments/assets/512d4a9a-4c4b-4c60-a3b1-4a8d86ea887a" />
 
 
 > [!CAUTION]
 > This repository is currently W.I.P.
+
+<br>
 
 # Interactive Text-Based Semantic Audio Search
 SAM-GEM is a python-based application enabling an intuitive and interactive audio-search-process.  
 Use SAM-GEM to find your sounds using descriptive texts instead of browsing through your sample-folders.  
 Get an instant overview over all of your audio samples and explore them on a visual basis.
 
+<br>
 
 # Core-Features  
    
@@ -24,9 +27,12 @@ Interactively explore your audio-catalog display as a two-dimensional scatterplo
 Within, the matches are highlighted as red square, indicating locations containing more samples that might fit your needs.  
 A yellow square indicates your currently selected sample (also drag-and-droppable)
 
+<br>
 
 # Demo 
 ![SAM-GEM_demo](https://github.com/user-attachments/assets/39659166-bc2b-48c6-badb-0c9ee93bdc47)
+
+<br>
 
 # Getting Started
 ## 1️⃣ **Clone the repository**   
@@ -73,6 +79,7 @@ Of course, all of your actual sample-files may be within several subdirectories,
 Synchronizing and evaluating your samples may take some minutes (~10-12 minutes for 6k files).  
 This will include embedding-creation for all your samples and dimensionality-reduction using UMAP to build the database as foundation for the interactive plot.  
 
+<br>
 
 # Outlook 
 Of course, SAM-GEM is not yet finished.  
@@ -87,6 +94,8 @@ Also, clustering will be implemented, allowing for a better distinction of "samp
 
 - **Loop vs One-Shot Classifier**  
 Last but not least, we are working on a classifier to easily limit the search-results to loops or one-shots if desired!
+
+<br>
 
 # About
 Sample selection in music prodution takes a lot of time, can often break the flow and get you out of "the zone".  
