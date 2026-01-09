@@ -6,7 +6,7 @@ from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget,
                                QFrame, QMenuBar, QGridLayout,
                                QGraphicsDropShadowEffect)
 from PySide6.QtCore import Qt, QLoggingCategory
-from PySide6.QtGui import QColor
+from PySide6.QtGui import QColor, QIcon
 from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput
 from src.plotting import ScatterWidget, DraggableWaveform
 from src.interface import InterFacer
@@ -325,6 +325,7 @@ class GUI(QMainWindow):
 
 if __name__ == '__main__':
     app = QApplication([])
+    app.setWindowIcon(QIcon("data/logo.png"))
     gui = GUI()
     gui.show()
     app.exec()
