@@ -1,15 +1,22 @@
 # Script to instantiate singular model used for all gen-embedding purposes of whole project
 import os
+import warnings
 from transformers import AutoModel
 from peft import PeftModel, PeftConfig
 from transformers import ClapProcessor
+from transformers.utils import logging
+
+
+# Filter warnings
+logging.set_verbosity(logging.FATAL)
+warnings.filterwarnings("ignore", module="peft")
 
 # Check whether config is available
 cwd = os.getcwd()
 model_dir = os.path.join(cwd, "data", "model")
 config_pth = os.path.join(model_dir, "adapter_config.json")
 if not os.path.exists(config_pth):
-    raise FileNotFoundError(f"No file found at: {config_pth}")
+    raise FileNotFoundError(f"No config-file found at: {config_pth}")
 
 # Load model
 config = PeftConfig.from_pretrained(model_dir)
