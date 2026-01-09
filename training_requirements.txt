@@ -1,0 +1,15 @@
+ftfy==6.3.1
+h5py==3.15.1
+matplotlib==3.10.8
+numpy==2.3.3
+pandas==2.3.3
+peft==0.18.0
+torch==2.9.1+cu128
+torchaudio==2.9.1+cu128
+torchlibrosa==0.1.0
+torchvision==0.24.1+cu128
+transformers==4.57.3
+unicodedata2==17.0.0
+wandb==0.23.1
+webdataset==1.0.2
+wget==3.2
