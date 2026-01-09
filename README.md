@@ -50,9 +50,9 @@ pip install -r requirements.txt
 ```
 
 ⚠️**Note**:  
-The repository contains two separate files listing required packages.  
+The repository contains two separate files listing required packages (`requirements.txt` for simply using the application, `train_requirements.txt` for finetuning).  
 This is to separate the packages for simply using the app and for finetuning the [underlying CLAP-model by LAION](https://github.com/LAION-AI/CLAP).  
-If you want to train, make sure to install all packages!  
+If you want to train, make sure to install the respective packages as well!  
 
 <br>
 
