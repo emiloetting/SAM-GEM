@@ -11,9 +11,13 @@ from PySide6.QtCore import (QPoint, Qt, QUrl,
                             QMimeData)
 
 
+
 NORMAL_SIZE = .035
 MATCH_SIZE = 0.15
 HARD_DRIVE_PREFIX = "E"
+
+
+
 class ScatterWidget(QWidget):
     """Class to create scatterplot of audio features via PyQtGraph."""
     def __init__(self, init_data: dict|None, 
@@ -358,7 +362,7 @@ class DraggableWaveform(QWidget):
 
         # Validate path to audio file
         if not os.path.isfile(self.audio_pth):
-            print("Traying to drag non-existing file: \n", self.audio_pth)
+            print("Trying to drag non-existing file: \n", self.audio_pth)
             return
 
         drag = QDrag(self)
