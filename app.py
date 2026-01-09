@@ -61,6 +61,7 @@ class GUI(QMainWindow):
 
         # ========================================== TOP MENU ========================================
         menuBar = QMenuBar(self)
+        menuBar.setStyleSheet(f"background-color: {BACKGROUND_COLOR}; color: white;")
         self.setMenuBar(menuBar)
         self.menu = menuBar.addMenu("Menu")
         self.menu.setStyleSheet("""
@@ -147,7 +148,7 @@ class GUI(QMainWindow):
         self.currently_selected = self.make_match_frame("CURRENTLY SELECTED: ", self.scatter.selected_sample,background=False) 
 
         self.input_line = QLineEdit()
-        self.input_line.setStyleSheet("font-size: 10pt;")
+        self.input_line.setStyleSheet("font-size: 10pt; color: white;")
         self.input_line.setAlignment(Qt.AlignCenter) 
         self.input_line.setPlaceholderText("")                    # empty to fix Qt bug 
         self.input_line.setPlaceholderText("DESCRIBE YOUR DESIRED SOUND HERE..")  # replace with prompt that is centered
@@ -234,6 +235,7 @@ class GUI(QMainWindow):
         label = QLabel(text)
         label.setAlignment(Qt.AlignHCenter)
         label.setAttribute(Qt.WA_TranslucentBackground)
+        label.setStyleSheet("color: white;")
 
         frame = QFrame()
         if background:

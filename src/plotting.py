@@ -14,7 +14,7 @@ from PySide6.QtCore import (QPoint, Qt, QUrl,
 
 NORMAL_SIZE = .035
 MATCH_SIZE = 0.15
-HARD_DRIVE_PREFIX = "E"
+HARD_DRIVE_PREFIX = "C"
 
 
 

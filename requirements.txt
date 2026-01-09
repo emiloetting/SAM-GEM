@@ -7,7 +7,6 @@ grpcio-status==1.75.1
 librosa==0.11.0
 lxml_html_clean==0.4.3
 peft==0.18.0
-pip==25.3
 plotly==6.4.0
 prompt_toolkit==3.0.52
 pyqtgraph==0.13.7
