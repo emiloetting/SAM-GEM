@@ -103,7 +103,7 @@ class InterFacer():
         
         
     def set_sample_dir(self, parent:QWidget) -> None:
-        """ Sets dir at given URL as parent dir containing all audio samples within subdirectories."""
+        """Sets dir at given URL as parent dir containing all audio samples within subdirectories."""
         dir = QFileDialog.getExistingDirectory(
             parent=parent, 
             caption="Select directory containing all samples (samples can be within subdirectories)"
@@ -176,12 +176,12 @@ class InterFacer():
         self.crs = self.db_con.cursor()
 
     
-    def _train_umap(self, dst_pth:str, embeds:np.array) -> UMAP:
+    def _train_umap(self, dst_pth:str, embeds:np.ndarray) -> UMAP:
         """Trains UMAP-reducer on embeds and stores at dst_pth.
         
         Args:
             dst_pth (str): Path where to store trained UMAP-transformer.
-            embeds (np.array): Embeddings to train UMAP-transforer.
+            embeds (np.ndarray): Embeddings to train UMAP-transforer.
         
         Returns:
             umap (UMAP): Trained UMAP-transformer.
@@ -207,15 +207,15 @@ class InterFacer():
         return umap
     
 
-    def _reduce_to_2(self, embeds:np.array, umap:UMAP) -> np.array:
+    def _reduce_to_2(self, embeds:np.ndarray, umap:UMAP) -> np.ndarray:
         """Reduces20-dim embeddings to 2 dims using pre-trained umap-object.
 
         Args:
-            embeds (np.array): 20-dimensional embeddings.
+            embeds (np.ndarray): 20-dimensional embeddings.
             umap (UMAP): pre-trained UMAP-transfomer.
         
         Returns:
-            reduced (np.array): Embeddings reduced using pre-trained UMAP-transformer.
+            reduced (np.ndarray): Embeddings reduced using pre-trained UMAP-transformer.
         """
         return umap.transform(embeds)
     
@@ -252,7 +252,7 @@ class InterFacer():
             prompt (str): Phrase or words to compute embedding of.
         
         Returns:
-            embed (np.array): Computed embedding.
+            embed (np.ndarray): Computed embedding.
         """
         assert type(prompt) == str, f"Invalid input. Got <{type(prompt)}>, expected <str>!"
         base_embed = self.tokenizer([prompt.strip()],

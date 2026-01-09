@@ -15,7 +15,7 @@ path_to_database = os.path.join(cwd, "DataBase")
 
 
 
-def audio_embeddings_with_paths(folder_path):
+def audio_embeddings_with_paths(folder_path: str):
     """
     creates clap embeddings for all wav files in folder
 
@@ -25,7 +25,9 @@ def audio_embeddings_with_paths(folder_path):
     Yields:
         tuple: (audio_path, embedding)
     """
-
+    if not (os.path.exists(folder_path) and os.path.isdir(folder_path)):
+        raise FileNotFoundError(f"Directory not found: {folder_path}")
+    
     folder = Path(folder_path)
     
     for audio_path in tqdm.tqdm(folder.rglob("*.*"), total=len(list(folder.rglob("*.*")))):
@@ -68,10 +70,12 @@ def audio_embeddings_with_paths(folder_path):
                 audio_embedding = MODEL.get_audio_features(input_feats)
                 audio_embedding = audio_embedding.detach().cpu().numpy().astype(np.float32)
                 
+                # Check if actual embed was created
                 if audio_embedding is None:
                     print(f"None Error processing {audio_path}")
                 else: 
                     yield audio_path, audio_embedding
+                    
             except Exception as e:
                 print(f"Error processing {audio_path}: {e}")
         else:

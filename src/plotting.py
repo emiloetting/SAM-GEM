@@ -183,6 +183,7 @@ class ScatterWidget(QWidget):
         data_pos = np.array(data["pos"])
         data_ids = np.array(data["ids"])
 
+
         real_matching_idcs = np.argwhere(np.isin(data_ids, match_ids)).flatten()
         sizes = np.array([self.normal_size]*len(data_ids))
         sizes[real_matching_idcs] = self.match_size
@@ -292,7 +293,6 @@ class DraggableWaveform(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
 
         # Create Widget to plot waveform
-        #TODO:Implement feature to play sound on click
         self.plot_widget = DraggablePlotWidget(self)
         self.plot_widget.hideAxis("bottom")
         self.plot_widget.hideAxis("left")
