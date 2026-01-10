@@ -75,6 +75,14 @@ Of course, all of your actual sample-files may be within several subdirectories,
 
 <br>
 
+⚠️**Important**:  
+Within `src/plotting.py`, the harddrive-prefix is set to `"C"` inside a constant in line 17.  
+This replaces the root location of your filepaths stored within the database when trying to load audiofiles.  
+For example, if you stored your samples on an external harddrive, the leading `"D"` or `"E"` will be replaced by the harddrive-prefix.  
+Ensure to set it to the appropriate character.  
+Should you not, you will likely see an error indicating that a filepath could not be loaded.  
+This filepath includes a change made based on the harddrive-prefix.
+
 ## 5️⃣ **Grab a cup of tea and enjoy 🍵 ;)**   
 Synchronizing and evaluating your samples may take some minutes (~10-12 minutes for 6k files).  
 This will include embedding-creation for all your samples and dimensionality-reduction using UMAP to build the database as foundation for the interactive plot.  
