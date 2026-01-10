@@ -173,6 +173,8 @@ class GUI(QMainWindow):
         """)
         "#3a60c9"
 
+        # Connect enter in text feld to button push
+        self.input_line.returnPressed.connect(self.find_sound_btn.animateClick)
 
         # User input 
         self.input_row = QHBoxLayout()
