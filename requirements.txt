@@ -1,0 +1,17 @@
+aiohttp==3.13.2
+datasets==4.3.0
+email-validator==2.3.0
+faiss-cpu==1.13.0
+ffmpeg==1.4
+grpcio-status==1.75.1
+librosa==0.11.0
+lxml_html_clean==0.4.3
+peft==0.18.0
+plotly==6.4.0
+prompt_toolkit==3.0.52
+pyqtgraph==0.13.7
+PySide6==6.10.0
+seaborn==0.13.2
+soundfile==0.13.1
+transformers==4.57.1
+umap-learn==0.5.9.post2
