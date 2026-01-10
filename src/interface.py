@@ -11,6 +11,7 @@ import pickle
 import time
 import faiss
 import librosa
+import torch
 import soundfile as sf
 import numpy as np
 from PySide6.QtWidgets import QWidget, QFileDialog
@@ -255,12 +256,13 @@ class InterFacer():
             embed (np.ndarray): Computed embedding.
         """
         assert type(prompt) == str, f"Invalid input. Got <{type(prompt)}>, expected <str>!"
-        base_embed = self.tokenizer([prompt.strip()],
-                                    padding=True,
-                                    truncation=True,
-                                    return_tensors="pt")
-        embed_wrong_dims = self.model.get_text_features(base_embed["input_ids"], base_embed["attention_mask"])     # embed is torch.Tensor
-        embed_better = embed_wrong_dims.numpy().squeeze()
+        with torch.no_grad():
+            base_embed = self.tokenizer([prompt.strip()],
+                                        padding=True,
+                                        truncation=True,
+                                        return_tensors="pt")
+            embed_wrong_dims = self.model.get_text_features(base_embed["input_ids"], base_embed["attention_mask"])     # embed is torch.Tensor
+        embed_better = embed_wrong_dims.detach().cpu().numpy().squeeze()
 
         if embed_better.ndim == 1:
             embed = embed_better[np.newaxis, :]                        # make it (1, d) for FAISS
@@ -298,13 +300,14 @@ class InterFacer():
             sr = TARGET_SR
 
         # Padding automatically done by feature extractor tg
-        audio_embedding_dict = self.feat_extractor(audio,
-                                            sampling_rate=TARGET_SR, 
-                                            return_tensors="pt")
-        
-        input_feats =  audio_embedding_dict["input_features"]
-        audio_embedding = MODEL.get_audio_features(input_feats)
-        audio_embedding = audio_embedding.numpy().astype(np.float32)
+        with torch.no_grad():
+            audio_embedding_dict = self.feat_extractor(audio,
+                                                sampling_rate=TARGET_SR, 
+                                                return_tensors="pt")
+            
+            input_feats =  audio_embedding_dict["input_features"]
+            audio_embedding = MODEL.get_audio_features(input_feats)
+        audio_embedding = audio_embedding.detach().cpu().numpy().astype(np.float32)
         faiss.normalize_L2(audio_embedding)
         return audio_embedding
 
