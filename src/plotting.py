@@ -14,7 +14,8 @@ from PySide6.QtCore import (QPoint, Qt, QUrl,
 
 NORMAL_SIZE = .035
 MATCH_SIZE = 0.15
-HARD_DRIVE_PREFIX = "C"
+HARD_DRIVE_PREFIX = "E"
+MAX_SAMPLES_TO_PLOT = 5_000   
 
 
 
@@ -249,8 +250,6 @@ class ScatterWidget(QWidget):
         p = points[0]
         self.selected_sample = self.gui_interfacer._grab_path_by_pos((p.pos().x(), p.pos().y()))
 
-        # Set first point in points as the "real" one
-        p = points[0]
 
         # Restore pre-selection-style 
         if self.last_clicked is not None and self.last_clicked_style is not None:
@@ -302,7 +301,7 @@ class DraggableWaveform(QWidget):
         self.plot_widget.hideAxis("left")
         self.plot_widget.setMouseEnabled(x=False, y=False)
         self.plot_widget.setStyleSheet("""
-                                        background-color: rgba(60, 80, 120, 20); 
+                                        background-color: rgba(60, 80, 120, 40); 
                                         border-radius: 25px;
                                           """)
         self.plot_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
@@ -324,16 +323,22 @@ class DraggableWaveform(QWidget):
         self.audio_pth = str(HARD_DRIVE_PREFIX+self.audio_pth[1:]) 
         data, samplerate = sf.read(self.audio_pth)
 
+        # Keep plot detail to reasonable value for smooth running of GUI
+        selection_factor = len(data) // MAX_SAMPLES_TO_PLOT     # interger div to get int as it's used for step size later
+        if selection_factor < 1:
+            selection_factor = 1    # Take every sample-point if amount of samples < MAX_SAMPLES_TO_PLOT
+        
+
         if data.ndim > 1:
             data = data.mean(axis=1)
 
         t_steps = np.linspace(0, len(data) / samplerate, len(data)) # time steps for x-axis
 
         pen = pg.mkPen(color=color, width=1.5)   # define line settings
-        self.plot_widget.plot(t_steps, data, pen=pen, clear=True)     # update plot
+        self.plot_widget.plot(t_steps[::selection_factor], data[::selection_factor], pen=pen, clear=True)     # update plot
         self.plot_widget.setAttribute(Qt.WA_NoSystemBackground)
         self.plot_widget.setStyleSheet("""
-                                        background-color: rgba(60, 80, 120, 20); 
+                                        background-color: rgba(60, 80, 120, 40); 
                                         border-radius: 25px;
                                           """)
 
@@ -382,7 +387,7 @@ class DraggableWaveform(QWidget):
         Returns:
             None
         """
-        self.audio_pth = os.path.abspath(new_path)
+        self.audio_pth = HARD_DRIVE_PREFIX + os.path.abspath(new_path)[1:]
         self.show_wav(color=color)
     
 class DraggablePlotWidget(pg.PlotWidget):
