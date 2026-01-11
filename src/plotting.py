@@ -250,8 +250,6 @@ class ScatterWidget(QWidget):
         p = points[0]
         self.selected_sample = self.gui_interfacer._grab_path_by_pos((p.pos().x(), p.pos().y()))
 
-        # Set first point in points as the "real" one
-        p = points[0]
 
         # Restore pre-selection-style 
         if self.last_clicked is not None and self.last_clicked_style is not None:
