@@ -40,7 +40,7 @@ class InterFacer():
         self.try_connections()
 
     
-    def full_setup(self, parent:QWidget) -> bool:
+    def full_setup(self, parent:QWidget) -> None:
         """Method to automatically fully create backend structure."""
         start = time.time()
         # Define dir where faiss index, DB, PCA and UMAP obejcts are stored
@@ -269,6 +269,7 @@ class InterFacer():
         faiss.normalize_L2(embed)
         return embed   
 
+
     def _gen_embed_from_audio(self, pth:str) -> np.ndarray:
         """Generates CLAP-Embedding from audio.
         
@@ -312,7 +313,6 @@ class InterFacer():
         return audio_embedding
 
 
-
     def find_top_k_matches(self, prompt:str, k:int) -> list[tuple[int,str]]:
         """Find k-best matches for L2-normalized input-embedding from FAISS index at self.index.
         
@@ -321,7 +321,7 @@ class InterFacer():
             k (int): Amount of matches to be found.
         
         Returns:
-            None
+            results (list(tuple(int, str)): List containing index-path-tuples of matches
         """
         # Make sure input is actual string
         assert type(prompt) == str, f"Invalid input. Got <{type(prompt)}>, expected <str>!"
