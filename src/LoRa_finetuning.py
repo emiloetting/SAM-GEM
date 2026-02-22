@@ -273,7 +273,7 @@ lora_cfg = LoraConfig(
                     'audio_model.audio_encoder.layers.2.blocks.4.attention.self.value', 
                     'audio_model.audio_encoder.layers.2.blocks.5.attention.self.value', 
                     'audio_model.audio_encoder.layers.3.blocks.0.attention.self.value', 
-                    'audio_model.audio_encoder.layers.3.blocks.1.attention.self.value'],  # ggf. anpassen je nach Layernamen, irgendwie komisch aber passt wahrscheinlich so wie es ist
+                    'audio_model.audio_encoder.layers.3.blocks.1.attention.self.value'],  
     lora_dropout=0.1,
     bias="none",
     task_type="FEATURE_EXTRACTION", 
@@ -289,24 +289,24 @@ train_ds = DrumJSONDataset("train.json")
 eval_ds = DrumJSONDataset("eval.json")
 
 training_args = TrainingArguments(
-    output_dir="./clap_lora_checkpoints",
-    per_device_train_batch_size=4,
-    learning_rate=1e-3,
-    num_train_epochs=3, 
-    logging_steps=10, 
-    logging_strategy="steps",
-    fp16=True,
-    bf16=False,
-    save_strategy="epoch",
-    remove_unused_columns=False
+    output_dir = "./clap_lora_checkpoints",
+    per_device_train_batch_size = 4,
+    learning_rate = 1e-3,
+    num_train_epochs = 3, 
+    logging_steps = 10, 
+    logging_strategy = "steps",
+    fp16 = True,
+    bf16 = False,
+    save_strategy = "epoch",
+    remove_unused_columns = False
 )
 
 trainer = Trainer(
-    data_collator=DataCollatorClap(processor),
-    model=model,
-    args=training_args,
-    train_dataset=train_ds,
-    eval_dataset=eval_ds,
+    data_collator = DataCollatorClap(processor),
+    model = model,
+    args = training_args,
+    train_dataset = train_ds,
+    eval_dataset = eval_ds,
 )
 
 trainer.train()

@@ -29,7 +29,8 @@ CWD = os.getcwd()
 class GUI(QMainWindow):
     """Main GUI class."""
     def __init__(self):
-        # ============================================= GENERAL ==========================================
+
+        # == GENERAL ==  
         super().__init__()  
         self.setWindowTitle("SAM-GEM")
         self.setGeometry(100, 100, 1200, 700)
@@ -59,7 +60,9 @@ class GUI(QMainWindow):
         top = QGridLayout()              # top part of vertical layout should overlay stuff over plot
         bottom = QVBoxLayout()           # so does bottom part
 
-        # ========================================== TOP MENU ========================================
+
+
+        # TOP MENU 
         menuBar = QMenuBar(self)
         menuBar.setStyleSheet(f"background-color: {BACKGROUND_COLOR}; color: white;")
         self.setMenuBar(menuBar)
@@ -99,8 +102,8 @@ class GUI(QMainWindow):
         self.menu.actions()[4].triggered.connect(lambda: sys.exit())    # close app
 
 
-        # ============================================= TOP ==========================================
-        # ===LEFT COL=================================================================================
+        # ==TOP ==
+        # LEFT COL
         # WAVEFORMS OF TOP 3 MATCHES
         self.left_container = QWidget(central)
         self.left_container.setAttribute(Qt.WA_TranslucentBackground)
@@ -126,7 +129,7 @@ class GUI(QMainWindow):
 
 
 
-        # ===RIGHT COL=================================================================================
+        # RIGHT COL
         self.right = QVBoxLayout()
         self.right.setSpacing(20)
         self.right.setContentsMargins(10, 10, 10, 10)
@@ -144,7 +147,7 @@ class GUI(QMainWindow):
         top.addItem(self.right, 0, 0)
 
 
-        # ============================================= BOTTOM ==========================================
+        # ==BOTTOM ==
         self.currently_selected = self.make_match_frame("CURRENTLY SELECTED: ", self.scatter.selected_sample,background=False) 
 
         self.input_line = QLineEdit()
