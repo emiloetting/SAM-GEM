@@ -242,10 +242,8 @@ class ScatterWidget(QWidget):
         
         
     def on_point_clicked(self, scatter, points):
-        """Defines action on point click - currently only debug output."""
-        # debug: print all clicked positions
-        for pt in points:
-            print(f"Clicked on point at: {pt.pos()}")
+        """Highlights datapoints selected in scatterplot and sets as currently selected sample."""
+
         # choose first point as the representative
         p = points[0]
         self.selected_sample = self.gui_interfacer._grab_path_by_pos((p.pos().x(), p.pos().y()))
